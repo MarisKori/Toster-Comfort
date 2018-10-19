@@ -82,7 +82,7 @@ function parse_questions() {
 	update_questions(null,()=> {
 		let timer_index = setInterval(()=>{
 			update_questions(()=>{ clearInterval(timer_index); });
-		},5000);
+		},1000);
 	});
 }
 
@@ -137,7 +137,7 @@ function parse_q() {
 		let timer_index = setInterval(()=>{
 			//console.log('timer');
 			update_q(()=>{ clearInterval(timer_index); });
-		},5000);
+		},1000);
 	});
 }
 
