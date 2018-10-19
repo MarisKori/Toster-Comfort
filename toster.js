@@ -22,18 +22,20 @@ function user_html(user,no_name) {
 	//stats & questions
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
-		html += ' &nbsp;<font color='+cnt_q_color+'>'+user.cnt_q+' &nbsp;</font>'+user.cnt_a
+		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" style="font-size:13px;font-weight:normal"><font color='+cnt_q_color+'>'+user.cnt_q
+			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" style="font-size:13px;font-weight:normal">'+user.cnt_a+'</a>'
 			+' &nbsp;<font color=#65c178>'+user.cnt_s+'%</font>'
-			+' &nbsp;<b><font color=#000>'+user.solutions+'%</font></b>';
+			+' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>';
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
 		if (!isNaN(parseFloat(user.karma)))
-			html += ' &nbsp;<font color=#999>Карма:</font> <b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b>';
+			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
 		else
 			html += ' &nbsp;<font color=#999>Карма:</font> ' + user.karma;
 	} else user_html_result = false;
 	html = '<span style="font-weight: normal">'+html+'</span>';
+	if (user.solutions_pending || user.karma_pending) user_html_result = false;
 	return html;
 }
 
@@ -83,6 +85,9 @@ function parse_questions() {
 		let timer_index = setInterval(()=>{
 			update_questions(()=>{ clearInterval(timer_index); });
 		},500);
+		setTimeout(()=>{
+			clearInterval(timer_index);
+		},17000);
 	});
 }
 
@@ -132,7 +137,7 @@ function parse_q() {
 				e:q[i],
 				nickname:nickname,
 			});
-			request_user[nickname] = true;
+			request_user[nickname] = i==0 ? 1 : true;
 		}
 	}
 	//console.log(elem_user);
@@ -141,6 +146,9 @@ function parse_q() {
 			//console.log('timer');
 			update_q(()=>{ clearInterval(timer_index); });
 		},500);
+		setTimeout(()=>{
+			clearInterval(timer_index);
+		},17000);
 	});
 }
 

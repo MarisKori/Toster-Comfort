@@ -22,25 +22,33 @@ function getURL(url,callback, on_fail) {
 	xhr.send();
 }
 
+function clean_db(timeout) {
+	//remove pending status
+	for(let id in db.user) {
+		delete db.user[id].solutions_pending;
+		delete db.user[id].karma_pending;
+	}
+	//remove users
+	let now = (new Date()).getTime();
+	for(let id in db.user) {
+		let user = db.user[id];
+		if (!(now - user.update_time < timeout)) delete db.user[id]; // n days
+	}
+}
+
 let saveDB_timer;
 function saveDB() {
 	if (saveDB_timer !== undefined) clearTimeout(saveDB_timer);
 	saveDB_timer = setTimeout(()=>{
+		clean_db(7*24*60*60*1000); //7 days
 		try {
-			for(let id in db.user) {
-				delete db.user[id].solutions_pending;
-				delete db.user[id].karma_pending;
-			}
 			localStorage.db = JSON.stringify(db);
 		} catch(e) {
 			//clean
 			//localStorage.db = '{"user":{},"question":{}}';
-			let now = (new Date()).getTime();
-			db.question = {};
-			for(let id in db.user) {
-				let user = db.user[id];
-				if (!(now - user.update_time < 7*24*60*60*1000)) delete db.user[id]; //7 days
-			}
+			console.log("Can't save DB");
+			db.question = {}; //panic
+			clean_db(3*24*60*60*1000); //3 days
 			try {
 				localStorage.db = JSON.stringify(db);
 			} catch(e2) {}
@@ -50,14 +58,14 @@ function saveDB() {
 
 
 //
-function updateUser(nickname) {
+function updateUser(nickname,timeout) {
 	if (!nickname) return console.log('No nickname!'); //impossible
 	let user = db.user[nickname];
 	if (!user) user = db.user[nickname] = {}; //impossible
 	user.nickname = nickname;
 	let now = (new Date()).getTime();
 	let need_update = false;
-	if (!(now - user.update_time < 24*60*60*1000)) {
+	if (!(now - user.update_time < (timeout || 24*60*60*1000))) {
 		need_update = true;
 		user.update_time = now; //error. not updated yet.
 	}
@@ -102,7 +110,7 @@ function updateUser(nickname) {
 				}
 			} else {
 				user.karma = "read-only";
-				console.log('Karma not found, user:',nickname);
+				//console.log('Karma not found, user:',nickname);
 			}
 		}, ()=>{ delete user.karma_pending; user.karma = 'не зарегистр.'; });
 	}
@@ -119,7 +127,7 @@ function analyzeQuestion(question_id) {
 			let user_name = txt.match(/<meta itemprop=\"name\" content=\"([^"]*)\">/)[1];
 			//console.log('user_name',user_name);
 			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
-			console.log('user_nickname',user_nickname);
+			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
 				db.question[question_id].is_pending = false;
 				db.question[question_id].user_id = user_nickname;
@@ -172,7 +180,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			if (user) {
 				u[nickname] = user;
 			}
-			updateUser(nickname);
+			if (request.arr[nickname] === 1) {
+				//console.log('Fast update:',nickname);
+				updateUser(nickname, 300000);
+			}
+			else updateUser(nickname);
 		}
 		sendResponse(u);
 	}
