@@ -2,17 +2,22 @@
 function getURL(url,callback, on_fail) {
 	//console.log('URL:',url);
 	let xhr = new XMLHttpRequest();
+	xhr.timeout = 13000;
 	xhr.onreadystatechange = function() {
 		if (this.readyState == 4) {
+			//console.log('success');
 			if (this.status != 200) {
 				console.log("error", this.status);
 				if (on_fail) on_fail();
 				return;
 			}
 			//window[back] = xhr.responseText;
-			callback(xhr.responseText);
+			if(callback)callback(xhr.responseText);
 		}
 	};
+	//xhr.ontimeout = function() {
+		//console.log('timeout');
+	//}
 	xhr.open("GET", url, true);
 	xhr.send();
 }
@@ -22,11 +27,25 @@ function saveDB() {
 	if (saveDB_timer !== undefined) clearTimeout(saveDB_timer);
 	saveDB_timer = setTimeout(()=>{
 		try {
+			for(let id in db.user) {
+				delete db.user[id].solutions_pending;
+				delete db.user[id].karma_pending;
+			}
 			localStorage.db = JSON.stringify(db);
 		} catch(e) {
-			localStorage.db = '{"user":{},"question":{}}';
+			//clean
+			//localStorage.db = '{"user":{},"question":{}}';
+			let now = (new Date()).getTime();
+			db.question = {};
+			for(let id in db.user) {
+				let user = db.user[id];
+				if (!(now - user.update_time < 7*24*60*60*1000)) delete db.user[id]; //7 days
+			}
+			try {
+				localStorage.db = JSON.stringify(db);
+			} catch(e2) {}
 		}
-	},5000);
+	},15000);
 }
 
 
@@ -43,11 +62,11 @@ function updateUser(nickname) {
 		user.update_time = now; //error. not updated yet.
 	}
 	//questions
-	if ((need_update || user.solutions === undefined) && !user.solutions_pending) {
+	if (need_update || user.solutions === undefined && !user.solutions_pending) {
 		user.solutions_pending = true;
+		saveDB();
 		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{
 			delete user.solutions_pending;
-			saveDB();
 			//solutions
 			let r = /<span itemprop="answerCount">\D*(\d+)\D*<\/span>/g;
 			let a;
@@ -69,11 +88,11 @@ function updateUser(nickname) {
 		});
 	}
 	//karma
-	if ((need_update || user.karma === undefined) && !user.karma_pending) {
+	if (need_update || user.karma === undefined && !user.karma_pending) {
 		user.karma_pending = true;
+		saveDB();
 		getURL('https://habr.com/users/'+nickname+'/',(text)=>{
 			delete user.karma_pending;
-			saveDB();
 			let a = /<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/.exec(text);
 			if (a) {
 				user.karma = a[1].replace(',','.').replace('–','-');
@@ -91,6 +110,7 @@ function updateUser(nickname) {
 
 function analyzeQuestion(question_id) {
 	db.question[question_id] = {is_pending:true};
+	saveDB();
 	getURL('https://toster.ru/q/' + question_id, function(text) {
 		let index_name = text.indexOf('<meta itemprop="name" content="');
 		if (index_name > -1) {
@@ -101,7 +121,6 @@ function analyzeQuestion(question_id) {
 			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
 			console.log('user_nickname',user_nickname);
 			if (user_nickname) {
-				saveDB();
 				db.question[question_id].is_pending = false;
 				db.question[question_id].user_id = user_nickname;
 				let user = db.user[user_nickname];
@@ -117,8 +136,8 @@ function analyzeQuestion(question_id) {
 let db;
 function reset_db() {
 	db = {
-		user:{},
-		question:{},
+		user:{}, // user_id => { name: name, nickname: nickname, ... }
+		question:{}, // q_id => { is_pending:bool, user_id:string }
 	};
 }
 reset_db();
