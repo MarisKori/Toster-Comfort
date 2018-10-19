@@ -82,7 +82,7 @@ function parse_questions() {
 	update_questions(null,()=> {
 		let timer_index = setInterval(()=>{
 			update_questions(()=>{ clearInterval(timer_index); });
-		},1000);
+		},500);
 	});
 }
 
@@ -103,8 +103,11 @@ function update_q(on_success, on_fail) {
 		elem_user.forEach((x)=>{
 			let user = udb[x.nickname];
 			let html = user_html(user,true);
-			if (html) x.e.innerHTML += html;
 			if (user_html_result) {
+				if (html && !x.done) {
+					x.e.innerHTML += html;
+					x.done = true;
+				}
 				//removeA(request_questions, q.id);
 				delete request_user[x.nickname];
 				//removeA(elem_user, x);
@@ -137,7 +140,7 @@ function parse_q() {
 		let timer_index = setInterval(()=>{
 			//console.log('timer');
 			update_q(()=>{ clearInterval(timer_index); });
-		},1000);
+		},500);
 	});
 }
 

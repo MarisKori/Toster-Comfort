@@ -1,6 +1,6 @@
 
 function getURL(url,callback, on_fail) {
-	console.log('URL:',url);
+	//console.log('URL:',url);
 	let xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {
 		if (this.readyState == 4) {
@@ -76,7 +76,7 @@ function updateUser(nickname) {
 			saveDB();
 			let a = /<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/.exec(text);
 			if (a) {
-				user.karma = a[1].replace(',','.');
+				user.karma = a[1].replace(',','.').replace('–','-');
 				let karma = parseFloat(a[1]);
 				if (!isNaN(karma)) { // !!!
 					user.karma = karma;
@@ -114,10 +114,14 @@ function analyzeQuestion(question_id) {
 	});
 }
 
-let db = {
-	user:{},
-	question:{},
-};
+let db;
+function reset_db() {
+	db = {
+		user:{},
+		question:{},
+	};
+}
+reset_db();
 
 try {
 	db = JSON.parse(localStorage.db);

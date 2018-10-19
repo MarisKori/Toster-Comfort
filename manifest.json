@@ -13,7 +13,7 @@
 	},
 
 	"permissions": [
-		
+		"https://toster.ru/*", "https://habr.com/*"
 	],
 	"background": {
 		"scripts": ["background.js"]
