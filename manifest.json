@@ -1,0 +1,47 @@
+{
+	"manifest_version": 2,
+
+	"name": "Toster Comfort",
+	"short_name": "Toster Comfort",
+	"description": "Добавляет больше информации и делает навигацию удобнее.",
+	"version": "0.0.1",
+	"icons": {
+			"16": "images/toster_logo_16.png",
+			"24": "images/toster_logo_24.png",
+			"32": "images/toster_logo_32.png",
+			"48": "images/toster_logo_48.png"
+	},
+
+	"permissions": [
+		
+	],
+	"background": {
+		"scripts": ["background.js"]
+	},
+	"content_scripts": [ {
+		"all_frames": true,
+		"js": [ "toster.js" ],
+		"matches": [ "https://toster.ru/*" ],
+		"run_at": "document_start"
+	}, {
+		"all_frames": true,
+		"js": [ "habr.js" ],
+		"matches": [ "https://habr.com/*" ],
+		"run_at": "document_start"
+	} ],
+	"options_ui": {
+		"open_in_tab": true, 
+		"chrome_style": true,
+		"page": "options.html"
+	},	
+	"browser_action": {
+		"default_icon": {
+			"16": "images/toster_logo_16.png",
+			"24": "images/toster_logo_24.png",
+			"32": "images/toster_logo_32.png",
+			"48": "images/toster_logo_48.png"
+		},
+		"default_title": "Toster Comfort",
+		"default_popup": "popup.html"
+	}
+}
