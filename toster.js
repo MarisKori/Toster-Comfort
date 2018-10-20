@@ -22,15 +22,15 @@ function user_html(user,no_name) {
 	//stats & questions
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
-		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" style="font-size:13px;font-weight:normal"><font color='+cnt_q_color+'>'+user.cnt_q
-			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" style="font-size:13px;font-weight:normal">'+user.cnt_a+'</a>'
-			+' &nbsp;<font color=#65c178>'+user.cnt_s+'%</font>'
-			+' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>';
+		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Вопросов: '+user.cnt_q+'" style="font-size:13px;font-weight:normal"><font color='+cnt_q_color+'>'+user.cnt_q
+			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a+'" style="font-size:13px;font-weight:normal">'+user.cnt_a+'</a>'
+			+' &nbsp;<font color=#65c178 title="Решений: '+user.cnt_s+'%">'+user.cnt_s+'%</font>'
+			+' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>';
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
 		if (!isNaN(parseFloat(user.karma)))
-			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
+			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/comments/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
 		else
 			html += ' &nbsp;<font color=#999>Карма:</font> ' + user.karma;
 	} else user_html_result = false;
