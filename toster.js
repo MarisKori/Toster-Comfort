@@ -30,7 +30,7 @@ function user_html(user,no_name) {
 	//karma
 	if (user.karma !== undefined) {
 		if (!isNaN(parseFloat(user.karma)))
-			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
+			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/comments/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
 		else
 			html += ' &nbsp;<font color=#999>Карма:</font> ' + user.karma;
 	} else user_html_result = false;
