@@ -16,8 +16,14 @@ function user_html(user,no_name) {
 	if (!user) return (user_html_result = false);
 	let html = ' | ';
 	if (!no_name) {
-		if (user.name == user.nickname || !user.name) html += '@'+user.nickname;
-		else html += user.name+' @'+user.nickname;
+		if (OPTIONS.show_name == 1 && OPTIONS.show_nickname == 1) {
+			if (user.name == user.nickname || !user.name) html += '@'+user.nickname;
+			else html += user.name+' @'+user.nickname;
+		} else if (OPTIONS.show_nickname == 1) {
+			html += '@'+user.nickname;
+		} else if (OPTIONS.show_name == 1 && user.name) { // strange option, but ok
+			html += user.name;
+		}
 	}
 	//stats & questions
 	if (user.solutions !== undefined) {
@@ -29,10 +35,16 @@ function user_html(user,no_name) {
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
+		let karma_word = OPTIONS.hide_word_karma == 1 ? '' : '<font color=#999>Карма:</font> ';
 		if (!isNaN(parseFloat(user.karma)))
-			html += ' &nbsp;<font color=#999>Карма:</font> <a href="https://habr.com/users/'+user.nickname+'/comments/" target=_blank style="font-size:13px"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
+			html += ' &nbsp;'+karma_word+'<a href="https://habr.com/users/'+user.nickname+'/comments/" target=_blank style="font-size:13px" title="Карма пользователя на Хабре"><b>' + (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+') + user.karma + '</font></b></a>';
 		else
-			html += ' &nbsp;<font color=#999>Карма:</font> ' + user.karma;
+			html += ' &nbsp;'+karma_word + '<span title="Статус пользователя на Хабре">' + user.karma + '</span>';
+		if (user.stat_pub || user.stat_comment) {
+			html += '<span title="Публикаций/комментариев на Хабре" class="show_habr"'
+				+ (OPTIONS.show_habr == 1?'':' style="display:none"')+'> '
+				+ (user.stat_pub || '0') + '/' + (user.stat_comment || '0');
+		}
 	} else user_html_result = false;
 	html = '<span style="font-weight: normal">'+html+'</span>';
 	if (user.solutions_pending || user.karma_pending) user_html_result = false;
@@ -49,9 +61,12 @@ function update_questions(on_success, on_fail) {
 		arr: request_questions,
 	}, function(data) {
 		//console.log("getQuestions",data);
+		let cnt = 0;
 		for(let q_id in data) {
 			qdb[q_id] = data[q_id]; //copy (update missing elements)
+			cnt++;
 		}
+		console.log('Update Question List:',cnt);
 		let result = true;
 		elem.forEach((q)=>{
 			let user = qdb[q.id];
@@ -101,9 +116,12 @@ function update_q(on_success, on_fail) {
 		arr: request_user,
 	}, function(data) {
 		//console.log("getUsers",data);
+		let cnt = 0;
 		for(let nickname in data) {
 			udb[nickname] = data[nickname]; //copy (update missing elements)
+			cnt++;
 		}
+		console.log('Update Question Records:',cnt);
 		let result = true;
 		elem_user.forEach((x)=>{
 			let user = udb[x.nickname];
@@ -152,9 +170,44 @@ function parse_q() {
 	});
 }
 
+let OPTIONS = {};
+// Change page according to options
+function parse_opt() {
+	chrome.runtime.sendMessage({
+		type: "getOptions",
+	}, function(options) {
+		console.log('Parse Options');
+		//window.options = options; //doesn't work
+		OPTIONS = options;
+		if (options.hide_sol_button == 1) {
+			let q = document.getElementsByClassName('buttons-group_answer');
+			for(let i=0;i<q.length;i++) {
+				let sol = q[i].querySelector('span.btn_solution');
+				if (sol) sol.style.display = 'none';
+			}
+		} else if (options.swap_buttons == 1) {
+			let q = document.getElementsByClassName('buttons-group_answer');
+			for(let i=0;i<q.length;i++) {
+				let sol = q[i].querySelector('span.btn_solution');
+				let like = q[i].querySelector('a.btn_like');
+				if (sol && like) {
+					q[i].insertBefore(like, sol);
+				}
+			}
+		}
+		if (options.show_habr == 1) {
+			let q = document.getElementsByClassName('buttons-group_answer');
+			for(let i=0;i<q.length;i++) {
+				q[i].style.display = '';
+			}
+		}
+	});
+}
+
 
 document.addEventListener('DOMContentLoaded', function () {
-	if (location.href.indexOf('https://toster.ru/q/') > -1) {
+	parse_opt();
+	if (location.href.indexOf('https://toster.ru/q/') > -1 || location.href.indexOf('https://toster.ru/answer') > -1) {
 		parse_q();
 	}
 	else if (!location.href.match(/^https:\/\/toster\.ru\/user\/.*\/questions/)) parse_questions();
