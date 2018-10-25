@@ -25,6 +25,10 @@ function getURL(url,callback, on_fail) {
 function clean_db(timeout) {
 	//remove pending status
 	for(let id in db.user) {
+		if (!db.user[id]) {
+			delete db.user[id];
+			continue;
+		}
 		delete db.user[id].solutions_pending;
 		delete db.user[id].karma_pending;
 	}
@@ -56,9 +60,10 @@ function saveDB() {
 	},15000);
 }
 
-
+if (localStorage.cut_karma === undefined) localStorage.cut_karma = 1;
 //
 function updateUser(nickname,timeout) {
+	//console.log('update:',nickname);
 	if (!nickname) return console.log('No nickname!'); //impossible
 	let user = db.user[nickname];
 	if (!user) user = db.user[nickname] = {}; //impossible
@@ -95,7 +100,7 @@ function updateUser(nickname,timeout) {
 			} else console.log("Stats not found, user:",nickname);
 		});
 	}
-	//karma
+	//karma & stats from habr
 	if (need_update || user.karma === undefined && !user.karma_pending) {
 		user.karma_pending = true;
 		saveDB();
@@ -104,13 +109,22 @@ function updateUser(nickname,timeout) {
 			let a = /<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/.exec(text);
 			if (a) {
 				user.karma = a[1].replace(',','.').replace('–','-');
-				let karma = parseFloat(a[1]);
+				let karma = parseFloat(user.karma);
 				if (!isNaN(karma)) { // !!!
+					if (localStorage.cut_karma == 1) karma = Math.floor(karma);
 					user.karma = karma;
 				}
 			} else {
 				user.karma = "read-only";
 				//console.log('Karma not found, user:',nickname);
+			}
+			a = /<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Публикации: (\d+)">/.exec(text);
+			if (a) {
+				user.stat_pub = parseInt(a[1]);
+			}
+			a = /<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Комментарии: (\d+)">/.exec(text);
+			if (a) {
+				user.stat_comment = parseInt(a[1]);
 			}
 		}, ()=>{ delete user.karma_pending; user.karma = 'не зарегистр.'; });
 	}
@@ -157,6 +171,7 @@ try {
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	if(!db) reset_db(); //imppossible. for debugging
     if (request.type == "getQuestions") {
 		let a = {};
 		request.arr.forEach((v)=>{
@@ -187,11 +202,23 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			else updateUser(nickname);
 		}
 		sendResponse(u);
+	} else if (request.type == "getOptions") {
+		let options = {};
+		PAGE_OPTIONS.forEach((opt)=>{
+			options[opt] = parseInt(localStorage[opt]);
+		});
+		sendResponse(options);
 	}
 });
 
+let PAGE_OPTIONS = ['swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma', 'show_name', 'show_nickname'];
 
-
+if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
+if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
+if (localStorage.show_habr === undefined) localStorage.show_habr=1;
+if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
+if (localStorage.show_name === undefined) localStorage.show_name=0;
+if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
 
 
 
