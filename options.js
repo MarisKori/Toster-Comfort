@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_word_karma");
 	init_checkbox("show_name");
 	init_checkbox("show_nickname");
+	init_checkbox("hide_offered_services");
 	
 });
 

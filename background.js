@@ -211,7 +211,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	}
 });
 
-let PAGE_OPTIONS = ['swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma', 'show_name', 'show_nickname'];
+let PAGE_OPTIONS = ['swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma', 'show_name', 'show_nickname', 'hide_offered_services'];
 
 if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -219,6 +219,7 @@ if (localStorage.show_habr === undefined) localStorage.show_habr=1;
 if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
 if (localStorage.show_name === undefined) localStorage.show_name=0;
 if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
+if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
 
 
 

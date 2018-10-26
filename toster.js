@@ -201,6 +201,12 @@ function parse_opt() {
 				q[i].style.display = '';
 			}
 		}
+		if (options.hide_offered_services == 1) {
+			let q = document.getElementsByClassName('offered-services');
+			for (let i=0;i<q.length;i++) {
+				q[i].style.display = 'none';
+			}
+		}
 	});
 }
 
