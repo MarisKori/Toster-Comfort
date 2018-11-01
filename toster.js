@@ -170,6 +170,40 @@ function parse_q() {
 	});
 }
 
+//Enable/disable Ctrl+Enter handler
+function set_placeholder(text = '') {
+	const textareas = document.querySelectorAll('textarea.textarea');
+	for(let i=0; i<textareas.length; i++) {
+		textareas[i].setAttribute('placeholder', text);
+	}
+}
+
+function ctrl_enter_handler(event) {
+	const target = event.target;
+	if (target.classList.contains('textarea')) {
+		const form = event.target.form;
+		const button = form.querySelector('button[type="submit"]');
+		if (button) {
+			if ((event.ctrlKey || event.metaKey) && (event.keyCode === 13 || event.keyCode === 10)) {
+				button.click();
+				setTimeout(() => set_placeholder('Жми Ctrl+Enter для отправки формы'), 1500);
+			};
+		}
+	}
+}
+
+function set_ctrl_enter_handler(active) {
+
+	if (active) {
+		document.removeEventListener('keydown', ctrl_enter_handler);
+		document.addEventListener('keydown', ctrl_enter_handler);
+		set_placeholder('Жми Ctrl+Enter для отправки формы');
+	} else {
+		document.removeEventListener('keydown', ctrl_enter_handler);
+		set_placeholder();
+	}
+}
+
 let OPTIONS = {};
 // Change page according to options
 function parse_opt() {
@@ -206,6 +240,9 @@ function parse_opt() {
 			for (let i=0;i<q.length;i++) {
 				q[i].style.display = 'none';
 			}
+		}
+		if ('use_ctrl_enter' in options) {
+			set_ctrl_enter_handler(!!options.use_ctrl_enter)
 		}
 	});
 }
