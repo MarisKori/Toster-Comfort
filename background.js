@@ -22,7 +22,10 @@ function getURL(url,callback, on_fail) {
 	xhr.send();
 }
 
-function clean_db(timeout) {
+const db_clean_steps = [7, 3, 2, 1, 0.5, 0.2];
+
+function clean_db(timeout_days) {
+	const timeout = timeout_days *24*60*60*1000;
 	//remove pending status
 	for(let id in db.user) {
 		if (!db.user[id]) {
@@ -38,24 +41,27 @@ function clean_db(timeout) {
 		let user = db.user[id];
 		if (!(now - user.update_time < timeout)) delete db.user[id]; // n days
 	}
+	//remove questions
+	for(let id in db.question) {
+		let q = db.question[id];
+		//ut means update_time
+		if (!(now - q.ut < timeout)) delete db.question[id]; // n days
+	}
 }
+
 
 let saveDB_timer;
 function saveDB() {
 	if (saveDB_timer !== undefined) clearTimeout(saveDB_timer);
 	saveDB_timer = setTimeout(()=>{
-		clean_db(7*24*60*60*1000); //7 days
-		try {
-			localStorage.db = JSON.stringify(db);
-		} catch(e) {
-			//clean
-			//localStorage.db = '{"user":{},"question":{}}';
-			console.log("Can't save DB");
-			db.question = {}; //panic
-			clean_db(3*24*60*60*1000); //3 days
+		for(let i=0;i<db_clean_steps.length;i++) {
+			clean_db(db_clean_steps[i]);
 			try {
 				localStorage.db = JSON.stringify(db);
-			} catch(e2) {}
+				break;
+			} catch(e) {
+				console.log("Can't save DB");
+			}
 		}
 	},15000);
 }
@@ -130,10 +136,11 @@ function updateUser(nickname,timeout) {
 	}
 }
 
-function analyzeQuestion(question_id) {
-	db.question[question_id] = {is_pending:true};
+function analyzeQuestion(question_id, now) {
+	db.question[question_id] = {is_pending:true, ut:now};
 	saveDB();
 	getURL('https://toster.ru/q/' + question_id, function(text) {
+		//get user name
 		let index_name = text.indexOf('<meta itemprop="name" content="');
 		if (index_name > -1) {
 			let index_name2 = text.indexOf('</span>', index_name);
@@ -152,6 +159,19 @@ function analyzeQuestion(question_id) {
 				updateUser(user_nickname);
 			}
 		}
+		//get question tags
+		let index_tags = text.indexOf('<ul class="tags-list">');
+		if (index_tags > -1) {
+			let tags = db.question[question_id].tags = {};
+			let index_tags2 = text.indexOf('</ul>', index_tags);
+			let txt = text.substr(index_tags, index_tags2 - index_tags);
+			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*(\S+)\s*<\/a>/g
+			let a = r.exec(txt);
+			while (a) {
+				tags[a[1]] = a[2];
+				a = r.exec(txt);
+			}
+		}
 	});
 }
 
@@ -159,7 +179,7 @@ let db;
 function reset_db() {
 	db = {
 		user:{}, // user_id => { name: name, nickname: nickname, ... }
-		question:{}, // q_id => { is_pending:bool, user_id:string }
+		question:{}, // q_id => { is_pending:bool, user_id:string, ut:integer }
 	};
 }
 reset_db();
@@ -174,18 +194,30 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if(!db) reset_db(); //imppossible. for debugging
     if (request.type == "getQuestions") {
 		let a = {};
-		request.arr.forEach((v)=>{
-			let question = db.question[v];
+		let now = (new Date()).getTime();
+		request.arr.forEach(q_id=>{
+			let question = db.question[q_id];
 			if (question) {
+				question.ut = now;
+				console.log(question);
+				let tags = question.tags;
+				if (tags) {
+					for(let k in tags) {
+						if (db_tags_blacklist[tags[k].toLowerCase()]) {
+							a[q_id] = {hide:true};
+							return;
+						}
+					}
+				}
 				let user_id = question.user_id;
 				let user = user_id && db.user[user_id];
 				if (user) {
-					a[v] = user;
+					a[q_id] = {q:question, u:user};
 					updateUser(user_id);
 				}
-				else if (!question.is_pending) analyzeQuestion(v);
+				else if (!question.is_pending) analyzeQuestion(q_id, now);
 			}
-			else analyzeQuestion(v);
+			else analyzeQuestion(q_id, now);
 		});
 		sendResponse(a);
     } else if (request.type == "getUsers") {
@@ -204,20 +236,53 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		sendResponse(u);
 	} else if (request.type == "getOptions") {
 		let options = {};
-		PAGE_OPTIONS.forEach((opt)=>{
+		TOSTER_OPTIONS.forEach((opt)=>{
 			options[opt] = parseInt(localStorage[opt]);
 		});
 		sendResponse(options);
 	}
 });
 
-let PAGE_OPTIONS = ['swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma', 'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter'];
+let TOSTER_OPTIONS = [
+	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
+	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
+	'top24_show_tags', 'top24_show_author',
+];
 
-if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
-if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
-if (localStorage.show_habr === undefined) localStorage.show_habr=1;
-if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
-if (localStorage.show_name === undefined) localStorage.show_name=0;
-if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
-if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
-if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=0;
+if (localStorage.top24_show_author === undefined) {
+	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
+	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
+	if (localStorage.show_habr === undefined) localStorage.show_habr=1;
+	if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
+	if (localStorage.show_name === undefined) localStorage.show_name=0;
+	if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
+	if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
+	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=1;
+	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
+	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=1;
+}
+
+//--------- DEBUG ---------
+
+function count_obj(obj) {
+	let cnt = 0;
+	for(let k in obj) cnt++;
+	return cnt;
+}
+
+// -------------- BLACKLIST -----------
+
+let db_tags_blacklist = {}
+function update_blacklist() {
+	db_tags_blacklist = {};
+	const lines = localStorage.tag_blacklist.split("\n");
+	for(let i=0;i<lines.length;i++) {
+		const tag = lines[i].trim();
+		if (!tag) continue;
+		db_tags_blacklist[tag.toLowerCase()] = true;
+	}
+}
+if (localStorage.tag_blacklist) update_blacklist();
+
+
+
