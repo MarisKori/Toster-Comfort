@@ -3,16 +3,47 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <script src="options.js"></script>
 <style>
-
+  label {
+    display: block;
+    cursor: pointer;
+  }
 </style>
 </head><body>
 <div id="current_version"></div>
-<input id='cut_karma' type=checkbox> Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).<br>
-<input id='hide_sol_button' type=checkbox> Скрыть кнопку "Отметить решением" (для чужих вопросов)<br>
-<input id='swap_buttons' type=checkbox> Поменять местами "Отметить решением" и "Нравится"<br>
-<input id='show_habr' type=checkbox> Показывать количество публикаций/комментариев на Хабре, если есть<br>
-<input id='hide_word_karma' type=checkbox> Убрать слово "Карма"<br>
-<input id='show_name' type=checkbox> Показывать имя в списке вопросов<br>
-<input id='show_nickname' type=checkbox> Показывать ник в списке вопросов<br>
-<input id='hide_offered_services' type=checkbox> Скрыть блок с вакансиями и заказами<br>
+<label for="cut_karma">
+  <input id="cut_karma" type="checkbox">
+  Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
+</label>
+<label for="hide_sol_button">
+  <input id="hide_sol_button" type="checkbox">
+  Скрыть кнопку "Отметить решением" (для чужих вопросов)
+</label>
+<label for="swap_buttons">
+  <input id="swap_buttons" type="checkbox">
+  Поменять местами "Отметить решением" и "Нравится"
+</label>
+<label for="show_habr">
+  <input id="show_habr" type="checkbox">
+  Показывать количество публикаций/комментариев на Хабре, если есть
+</label>
+<label for="hide_word_karma">
+  <input id="hide_word_karma" type="checkbox">
+  Убрать слово "Карма"
+</label>
+<label for="show_name">
+  <input id="show_name" type="checkbox">
+  Показывать имя в списке вопросов
+</label>
+<label for="show_nickname">
+  <input id="show_nickname" type="checkbox">
+  Показывать ник в списке вопросов
+</label>
+<label for="hide_offered_services">
+  <input id="hide_offered_services" type="checkbox">
+  Скрыть блок с вакансиями и заказами
+</label>
+<label for="use_ctrl_enter">
+  <input id="use_ctrl_enter" type="checkbox">
+  Использовать Ctrl+Enter для отправки формы
+</label>
 </body></html>

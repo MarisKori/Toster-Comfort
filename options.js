@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("show_name");
 	init_checkbox("show_nickname");
 	init_checkbox("hide_offered_services");
+	init_checkbox("use_ctrl_enter");
 	
 });
 
