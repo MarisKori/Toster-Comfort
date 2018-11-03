@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("use_ctrl_enter");
 	init_checkbox("top24_show_tags");
 	init_checkbox("top24_show_author");
+	init_checkbox("hide_solutions");
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {

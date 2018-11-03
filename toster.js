@@ -92,6 +92,15 @@ function update_questions(on_success, on_fail) {
 		let success = true;
 		elem.forEach(q=>{
 			if (q.tc_done) return;
+			if (OPTIONS.hide_solutions && q.solution === undefined) {
+				const found = q.e.parentNode.parentNode.parentNode.parentNode.querySelector('svg.icon_check');
+				q.solution = !!found;
+				if (found) {
+					q.tc_done = true;
+					q.e.parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+					return;
+				}
+			}
 			const rec = qdb[q.id];
 			if (!rec) return (success = false);
 			if (rec.hide) {
