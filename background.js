@@ -161,11 +161,14 @@ function analyzeQuestion(question_id, now) {
 		}
 		//get question tags
 		let index_tags = text.indexOf('<ul class="tags-list">');
+		console.log("index_tags",index_tags);
 		if (index_tags > -1) {
 			let tags = db.question[question_id].tags = {};
 			let index_tags2 = text.indexOf('</ul>', index_tags);
+			console.log("index_tags2",index_tags2);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
-			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*(\S+)\s*<\/a>/g
+			console.log("txt",txt);
+			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
 			let a = r.exec(txt);
 			while (a) {
 				tags[a[1]] = a[2];
@@ -199,7 +202,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			let question = db.question[q_id];
 			if (question) {
 				question.ut = now;
-				console.log(question);
 				let tags = question.tags;
 				if (tags) {
 					for(let k in tags) {
@@ -257,7 +259,7 @@ if (localStorage.top24_show_author === undefined) {
 	if (localStorage.show_name === undefined) localStorage.show_name=0;
 	if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
 	if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
-	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=1;
+	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=0;
 	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
 	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=1;
 }

@@ -137,10 +137,14 @@ function update_questions(on_success, on_fail) {
 				if (user) {
 					let html = user_html(user,true);
 					if (html) {
-						let newItem = document.createElement("SPAN");
-						newItem.innerHTML = html;
-						t.e.insertBefore( newItem, t.a);
-						t.e.insertBefore( document.createElement("BR"), t.a);
+						if (!t.author) {
+							let newItem = t.author = document.createElement("NOBR");
+							newItem.innerHTML = html;
+							t.e.insertBefore( newItem, t.a);
+							t.e.insertBefore( document.createElement("BR"), t.a);
+						} else {
+							t.author.innerHTML = html;
+						}
 					}
 					if (user_html_result) {
 						removeA(request_questions, t.id);
