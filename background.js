@@ -87,7 +87,7 @@ function updateUser(nickname,timeout) {
 		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{
 			delete user.solutions_pending;
 			//solutions
-			let r = /<span itemprop="answerCount">\D*(\d+)\D*<\/span>/g;
+			let r = /\s*(\d+)\s*<\/div>/g; //todo: very very bad, need better algorytm!
 			let a;
 			let sum = 0;
 			while ((a = r.exec(text)) !== null) {
@@ -161,13 +161,10 @@ function analyzeQuestion(question_id, now) {
 		}
 		//get question tags
 		let index_tags = text.indexOf('<ul class="tags-list">');
-		console.log("index_tags",index_tags);
 		if (index_tags > -1) {
 			let tags = db.question[question_id].tags = {};
 			let index_tags2 = text.indexOf('</ul>', index_tags);
-			console.log("index_tags2",index_tags2);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
-			console.log("txt",txt);
 			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
 			let a = r.exec(txt);
 			while (a) {
@@ -187,10 +184,15 @@ function reset_db() {
 }
 reset_db();
 
-try {
-	db = JSON.parse(localStorage.db);
-} catch(e) {
-	//
+function load_db() {
+	try {
+		db = JSON.parse(localStorage.db);
+	} catch(e) {
+		//
+	}
+}
+if (localStorage.fixed_a_bug) {
+	load_db();
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
@@ -251,19 +253,20 @@ let TOSTER_OPTIONS = [
 	'top24_show_tags', 'top24_show_author', 'hide_solutions',
 ];
 
-if (!localStorage.hide_solutions) {
+if (!localStorage.fixed_a_bug) {
 	//Toster options
-	if (!localStorage.swap_buttons) localStorage.swap_buttons=0;
-	if (!localStorage.hide_sol_button) localStorage.hide_sol_button=0;
-	if (!localStorage.show_habr) localStorage.show_habr=1;
-	if (!localStorage.hide_word_karma) localStorage.hide_word_karma=0;
-	if (!localStorage.show_name) localStorage.show_name=0;
-	if (!localStorage.show_nickname) localStorage.show_nickname=1;
-	if (!localStorage.hide_offered_services) localStorage.hide_offered_services=0;
-	if (!localStorage.use_ctrl_enter) localStorage.use_ctrl_enter=0;
-	if (!localStorage.top24_show_tags) localStorage.top24_show_tags=0;
-	if (!localStorage.top24_show_author) localStorage.top24_show_author=1;
-	if (!localStorage.hide_solutions) localStorage.hide_solutions=1;
+	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
+	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
+	if (localStorage.show_habr === undefined) localStorage.show_habr=1;
+	if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
+	if (localStorage.show_name === undefined) localStorage.show_name=0;
+	if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
+	if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
+	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=0;
+	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
+	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=1;
+	if (localStorage.hide_solutions === undefined) localStorage.hide_solutions=0;
+	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 }
 
 //--------- DEBUG ---------
