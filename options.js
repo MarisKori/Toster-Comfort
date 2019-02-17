@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("top24_show_tags");
 	init_checkbox("top24_show_author");
 	init_checkbox("hide_solutions");
+	init_checkbox("save_form_to_storage");
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {
