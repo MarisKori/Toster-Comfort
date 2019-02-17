@@ -298,6 +298,49 @@ function set_ctrl_enter_handler() {
 	set_placeholder('Жми Ctrl+Enter для отправки формы');
 }
 
+//Enable save form toLocalStorage
+function enable_save_form_to_storage() {
+	const formsData = localStorage.getItem('formsData');
+	if (!formsData) {
+		localStorage.setItem('formsData', '{}');
+	}
+	const answer_form = document.querySelector('#answer_form');
+	const textarea = answer_form.querySelector('textarea.textarea');
+	const questionId = location.pathname.split('/').pop();
+	restore_form_from_storage(questionId);
+	answer_form.addEventListener('submit', remove_form_from_storage(questionId));
+	textarea.addEventListener('input', save_form_to_storage(questionId));
+}
+
+function save_form_to_storage(questionId) {
+	return (event) => {
+		const value = event.target.value;
+		const formsData = JSON.parse(localStorage.getItem('formsData'));
+		if (value) {
+			formsData[questionId] = value;
+		} else {
+			delete formsData[questionId];
+		}
+		localStorage.setItem('formsData', JSON.stringify(formsData));
+	}
+}
+
+function restore_form_from_storage(questionId) {
+	const formsData = JSON.parse(localStorage.getItem('formsData'));
+	if (formsData[questionId]) {
+		const answer_form = document.querySelector('#answer_form');
+		answer_form.querySelector('textarea.textarea').value = formsData[questionId];
+	}
+}
+
+function remove_form_from_storage(questionId) {
+	return (event) => {
+		const formsData = JSON.parse(localStorage.getItem('formsData'));
+		delete formsData[questionId];
+		localStorage.setItem('formsData', JSON.stringify(formsData));
+	}
+}
+
 let is_options_loaded = false;
 let arr_on_options_callback = [];
 function listenOnOptions(fn) {
@@ -344,6 +387,9 @@ function parse_opt() {
 		}
 		if (options.use_ctrl_enter == 1) {
 			set_ctrl_enter_handler();
+		}
+		if (options.save_form_to_storage == 1) {
+			enable_save_form_to_storage();
 		}
 		arr_on_options_callback.forEach(fn=>fn());
 		is_options_loaded = true;

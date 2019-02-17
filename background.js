@@ -250,7 +250,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 let TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
-	'top24_show_tags', 'top24_show_author', 'hide_solutions',
+	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
 ];
 
 if (!localStorage.fixed_a_bug) {
@@ -266,6 +266,7 @@ if (!localStorage.fixed_a_bug) {
 	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
 	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=1;
 	if (localStorage.hide_solutions === undefined) localStorage.hide_solutions=0;
+	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 }
 
