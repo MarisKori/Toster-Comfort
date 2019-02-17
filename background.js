@@ -191,9 +191,10 @@ function load_db() {
 		//
 	}
 }
-if (localStorage.fixed_a_bug) {
+if (localStorage.save_form_to_storage) { //last added option (reset on each update)
 	load_db();
 }
+
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if(!db) reset_db(); //imppossible. for debugging
@@ -253,7 +254,7 @@ let TOSTER_OPTIONS = [
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
 ];
 
-if (!localStorage.fixed_a_bug) {
+if (localStorage.save_form_to_storage === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
