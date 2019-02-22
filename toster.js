@@ -305,11 +305,13 @@ function enable_save_form_to_storage() {
 		localStorage.setItem('formsData', '{}');
 	}
 	const answer_form = document.querySelector('#answer_form');
-	const textarea = answer_form.querySelector('textarea.textarea');
-	const questionId = location.pathname.split('/').pop();
-	restore_form_from_storage(questionId);
-	answer_form.addEventListener('submit', remove_form_from_storage(questionId));
-	textarea.addEventListener('input', save_form_to_storage(questionId));
+	if (answer_form) {
+		const textarea = answer_form.querySelector('textarea.textarea');
+		const questionId = location.pathname.split('/').pop();
+		restore_form_from_storage(questionId);
+		answer_form.addEventListener('submit', remove_form_from_storage(questionId));
+		textarea.addEventListener('input', save_form_to_storage(questionId));
+	}
 }
 
 function save_form_to_storage(questionId) {
