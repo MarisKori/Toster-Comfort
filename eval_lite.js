@@ -46,8 +46,8 @@ var TOKEN_FN = {
 	'!=':s=>new Token(s.pop().token != s.pop().token),
 	'===':s=>new Token(s.pop().token === s.pop().token),
 	'!==':s=>new Token(s.pop().token !== s.pop().token),
-	'&&':s=>new Token(s.pop().token && s.pop().token),
-	'||':s=>new Token(s.pop().token || s.pop().token),
+	'&&':s=>{let b = s.pop().token; return new Token(s.pop().token && b)},
+	'||':s=>{let b = s.pop().token; return new Token(s.pop().token || b)},
 	//custom functions
 	'tag':s=>new Token(outer_tag(s.pop().token)), // outer_tag is external function.
 }
@@ -225,6 +225,7 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 			let resToken = token.fn(stack);
 			stack.push(resToken);
 		} else console.warn("Can't process token, bad type:",token);
+		//console.log(stack.map(v=>v.token+'('+(typeof v.token)+')').join());
 	});
 	if (stack.length != 1) console.warn('Final RPN stack len:',stack.length, stack);
 	return stack[0].token;
@@ -232,7 +233,9 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 
 function EvalLite(str,env) {
 	let tokens = MakeTokens(str);
+	//console.log(tokens);
 	let rpn = MakeRPN(tokens);
+	//console.log(rpn);
 	let result = CalcRPN([...rpn], env);
 	return result;
 }
@@ -240,4 +243,4 @@ function EvalLite(str,env) {
 eval_lite = EvalLite;
 eval.lite = EvalLite;
 
-//Example: EvalLite('x>7', {x:8}); //true
+//EvalLite('(q >= 15 || q > 5 && a > 30) && s <= 10', {q:15, a:1, s:64}); 

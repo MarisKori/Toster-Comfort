@@ -25,7 +25,7 @@ function update_options() {
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
 	const version = document.getElementById('current_version');
-	version.innerHTML = '<b>Версия: v'+manifest.version+(manifest.version.lastIndexOf('.')==1?' beta':'')+'</b>';
+	version.innerHTML = '<b>Версия: v'+manifest.version+(' beta')+'</b>';
 	
 	init_checkbox("cut_karma");
 	init_checkbox("hide_sol_button");

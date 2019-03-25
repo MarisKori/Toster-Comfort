@@ -319,7 +319,7 @@ if (localStorage.all_conditions === undefined) { //last added option
 	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
-	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ff0";
+	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ff8";
 }
 
 //--------- DEBUG ---------
