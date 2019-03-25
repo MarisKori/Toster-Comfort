@@ -7,6 +7,11 @@
     display: block;
     cursor: pointer;
   }
+  .new {
+    color: red;
+	font-weight: bold;
+	background-color: #ff0;
+  }
 </style>
 </head><body>
 <div id="current_version"></div>
@@ -62,9 +67,22 @@
   <input id="save_form_to_storage" type="checkbox">
   Сохранять введенный в форму текст до отправки
 </label>
+<label for="make_dark">
+  <input id="make_dark" type="checkbox">
+  Затемнять вопросы, а не буквально скрывать (убирать) <span class=new>(new!)</span>
+</label>
 
 <p>
   Чёрный список тегов (по одному на строку):<br>
   <textarea id="tag_blacklist" cols=100 rows=15></textarea>
+</p>
+
+<p>
+  Дополнительные условия (по одному на строку). <span class=new>(new!)</span><br>
+  Формат: javascript-условие = действие.<br>
+  Действием может быть слово "hide" или "#f00".<br>
+  В условии можно <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">использовать</a>:
+    questions, answers, solutions, karma, comments, publications и функцию tag<br>
+  <textarea id="all_conditions" cols=100 rows=5></textarea>
 </p>
 </body></html>

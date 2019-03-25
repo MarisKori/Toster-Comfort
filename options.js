@@ -8,18 +8,24 @@ function init_checkbox(name) {
 	});
 }
 
-let textarea_blacklist, blacklist;
+let textarea_blacklist, blacklist, textarea_conditions, condlist;
 function update_options() {
 	if (textarea_blacklist.value != blacklist) {
 		blacklist = textarea_blacklist.value;
 		background.localStorage.tag_blacklist = blacklist;
 		background.update_blacklist();
 	}
+	if (textarea_conditions.value != condlist) {
+		condlist = textarea_conditions.value;
+		background.localStorage.all_conditions = condlist;
+		background.update_conditions();
+	}
 }
 
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
-	document.getElementById('current_version').innerHTML = '<b>Версия: v'+manifest.version+'</b>';
+	const version = document.getElementById('current_version');
+	version.innerHTML = '<b>Версия: v'+manifest.version+(manifest.version.lastIndexOf('.')==1?' beta':'')+'</b>';
 	
 	init_checkbox("cut_karma");
 	init_checkbox("hide_sol_button");
@@ -34,11 +40,18 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("top24_show_author");
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
+	init_checkbox("make_dark");
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {
 		blacklist = background.localStorage.tag_blacklist;
 		textarea_blacklist.value = blacklist;
+	}
+
+	textarea_conditions = document.getElementById('all_conditions');
+	if (background.localStorage.all_conditions) {
+		condlist = background.localStorage.all_conditions;
+		textarea_conditions.value = condlist;
 	}
 	
 	window.onblur = update_options;

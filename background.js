@@ -195,6 +195,44 @@ if (localStorage.save_form_to_storage) { //last added option (reset on each upda
 	load_db();
 }
 
+let outer_tag = ()=>{};
+
+//Prepare environment and call eval()
+function checkCondition(cond, current_data) {
+	//Special function triggered from eval() - check if a question has the tag
+	outer_tag = function(s) {
+		let tag_lower = s.toLowerCase();
+		let tags = current_data.q.tags;
+		if (!tags) return false;
+		for(let k in tags) {
+			if (tags[k].toLowerCase() == tag_lower) return true;
+		}
+		return false;
+	}
+	//Environment
+	let env = {
+		questions: current_data.u.cnt_q || 999,
+		answers: current_data.u.cnt_a || 999,
+		solutions: current_data.u.solutions || 100,
+		karma: current_data.u.karma || 0,
+		comments: current_data.u.stat_comment || 0,
+		articles: current_data.u.stat_pub || 0,
+	}
+	env.q = env.questions;
+	env.a = env.answers;
+	env.s = env.solutions;
+	env.k = env.karma;
+	env.c = env.comments;
+	env.publications = env.articles;
+	env.p = env.publications;
+	try {
+		return eval.lite(cond, env);
+	} catch(e) {
+		return false;
+	}
+}
+
+
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if(!db) reset_db(); //imppossible. for debugging
@@ -217,8 +255,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 				let user_id = question.user_id;
 				let user = user_id && db.user[user_id];
 				if (user) {
-					a[q_id] = {q:question, u:user};
+					let current_data = {q:question, u:user};
+					a[q_id] = current_data;
 					updateUser(user_id);
+					//Проверка доп. условий
+					for(let i=0;i<db_conditions.length;i++){
+						let rule = db_conditions[i];
+						if (checkCondition(rule.cond, current_data)) {
+							if (rule.act == 'hide') current_data.hide = true;
+							else current_data.color = rule.act;
+							break;
+						}
+					}
 				}
 				else if (!question.is_pending) analyzeQuestion(q_id, now);
 			}
@@ -252,9 +300,10 @@ let TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
+	'make_dark',
 ];
 
-if (localStorage.save_form_to_storage === undefined) { //last added option
+if (localStorage.all_conditions === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -269,6 +318,8 @@ if (localStorage.save_form_to_storage === undefined) { //last added option
 	if (localStorage.hide_solutions === undefined) localStorage.hide_solutions=0;
 	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
+	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
+	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ff0";
 }
 
 //--------- DEBUG ---------
@@ -292,6 +343,29 @@ function update_blacklist() {
 	}
 }
 if (localStorage.tag_blacklist) update_blacklist();
+
+// ------------ Дополнительные условия показа вопросов -------------
+
+let db_conditions = [];
+function update_conditions() {
+	db_conditions = [];
+	const lines = localStorage.all_conditions.split("\n");
+	for(let i=0;i<lines.length;i++) {
+		let rule = lines[i].trim(); //Строка, содержащая отдельное правило
+		if (rule.indexOf('//') !== -1) rule = rule.split('//')[0].trim();
+		if (!rule) continue;
+		let eq_idx = rule.lastIndexOf('='); //Последний знак "="
+		if (eq_idx < 1 || rule[eq_idx-1] == '=') continue;
+		let rule_cond_str = rule.substring(0,eq_idx).trim(); //Условие правила - eval(rule_cond_str)
+		let rule_action_str = rule.substring(eq_idx+1).trim(); //Действие правила - #ff0 или hide
+		db_conditions.push({
+			cond: rule_cond_str,
+			act: rule_action_str,
+		});
+	}
+}
+if (localStorage.all_conditions) update_conditions();
+
 
 
 

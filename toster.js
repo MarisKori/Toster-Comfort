@@ -77,6 +77,22 @@ function makeTags(tags) {
 	return ul;
 }
 
+//Скрыть элемент, либо просто затемнить (на белом фоне)
+function hideElementClever(el) {
+	if (!OPTIONS.make_dark) {
+		el.style.display = 'none';
+		return;
+	}
+	let div = document.createElement('div');
+	div.style.position = 'absolute';
+	div.style.width = (el.clientWidth || 10) + 'px';
+	div.style.height = (el.clientHeight || 10) + 'px';
+	div.style.background = 'rgba(255,255,255,.7)';
+	div.style.top = '0';
+	div.style.pointerEvents = 'none';
+	el.appendChild(div);
+}
+
 function update_questions(on_success, on_fail) {
 	chrome.runtime.sendMessage({
 		type: "getQuestions",
@@ -97,7 +113,8 @@ function update_questions(on_success, on_fail) {
 				q.solution = !!found;
 				if (found) {
 					q.tc_done = true;
-					q.e.parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+					hideElementClever(parent)
 					return;
 				}
 			}
@@ -105,7 +122,8 @@ function update_questions(on_success, on_fail) {
 			if (!rec) return (success = false);
 			if (rec.hide) {
 				q.tc_done = true;
-				q.e.parentNode.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+				hideElementClever(parent);
 				return;
 			}
 			let user = rec.u;
@@ -117,6 +135,11 @@ function update_questions(on_success, on_fail) {
 				//removeA(elem, q);
 			}
 			else success = false;
+			//Change color
+			if (rec.color) {
+				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+				parent.style.backgroundColor = rec.color;
+			}
 		});
 		elem_top_24.forEach(t=>{
 			if (t.tc_done == 2) return;
