@@ -310,10 +310,10 @@ let TOSTER_OPTIONS = [
 ];
 
 let HABR_OPTIONS = [
-	'move_posttime_down','move_stats_up',
+	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.move_stats_up === undefined) { //last added option
+if (localStorage.hide_comment_form_by_default === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -329,10 +329,11 @@ if (localStorage.move_stats_up === undefined) { //last added option
 	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
-	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ff8";
+	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ffc";
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
+	if (localStorage.hide_comment_form_by_default === undefined) localStorage.hide_comment_form_by_default=0;
 }
 
 //--------- DEBUG ---------

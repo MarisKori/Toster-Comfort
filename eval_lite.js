@@ -163,7 +163,7 @@ function MakeRPN(tokens) { // https://en.wikipedia.org/wiki/Reverse_Polish_notat
 		} else if (type == TYPE_COMMA) {
 			while (true) {
 				if (!stack.length) {
-					console.warn("Missing '(' or ','"); //ERROR
+					console.log("Missing '(' or ','"); //ERROR
 					break;
 				} else if (stack.peek() == '(') break;
 				else output.push(stack.pop());
@@ -184,14 +184,14 @@ function MakeRPN(tokens) { // https://en.wikipedia.org/wiki/Reverse_Polish_notat
 				//только операторы?
 				output.push(stack.pop());
 			}
-			if (stack.length === 0) console.warn("Missing '('");
+			if (stack.length === 0) console.log("Missing '('");
 			stack.pop();
 			if (stack.length && stack.peek().type == TYPE_FUNCTION) output.push(stack.pop());
-		} else console.warn('Unknown token type:',type);
+		} else console.log('Unknown token type:',type);
 	}
 	while (stack.length) {
 		let op = stack.pop();
-		if (op.type == TYPE_BRACKETS) console.warn('Unexpected bracket');
+		if (op.type == TYPE_BRACKETS) console.log('Unexpected bracket');
 		else output.push(op);
 	}
 	return output;
@@ -206,7 +206,7 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 		} else if (type == TYPE_LITERAL) {
 			let v = env[token.token]; //value from environment
 			if (v === undefined) {
-				console.warn('Unknown variable:',token);
+				console.log('Unknown variable:',token);
 			} else {
 				let tok;
 				if (typeof v == 'function') {
@@ -224,10 +224,10 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 		} else if (type == TYPE_OPERATOR || type == TYPE_FUNCTION) {
 			let resToken = token.fn(stack);
 			stack.push(resToken);
-		} else console.warn("Can't process token, bad type:",token);
+		} else console.log("Can't process token, bad type:",token);
 		//console.log(stack.map(v=>v.token+'('+(typeof v.token)+')').join());
 	});
-	if (stack.length != 1) console.warn('Final RPN stack len:',stack.length, stack);
+	if (stack.length != 1) console.log('Final RPN stack len:',stack.length, stack);
 	return stack[0].token;
 }
 
