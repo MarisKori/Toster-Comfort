@@ -98,13 +98,13 @@ function update_questions(on_success, on_fail) {
 		type: "getQuestions",
 		arr: request_questions,
 	}, function(data) {
-		console.log("getQuestions",data);
+		//console.log("getQuestions",data);
 		let cnt = 0;
 		for(let q_id in data) {
 			qdb[q_id] = data[q_id]; //copy (update missing elements)
 			cnt++;
 		}
-		console.log('Update Question List:',cnt);
+		//console.log('Update Question List:',cnt);
 		let success = true;
 		elem.forEach(q=>{
 			if (q.tc_done) return;
@@ -244,7 +244,7 @@ function update_q(on_success, on_fail) {
 			udb[nickname] = data[nickname]; //copy (update missing elements)
 			cnt++;
 		}
-		console.log('Update Question Records:',cnt);
+		//console.log('Update Question Records:',cnt);
 		let result = true;
 		elem_user.forEach(x=>{
 			let user = udb[x.nickname];
@@ -379,8 +379,6 @@ function parse_opt() {
 	chrome.runtime.sendMessage({
 		type: "getOptions",
 	}, function(options) {
-		console.log('Parse Options',options);
-		//window.options = options; //doesn't work
 		OPTIONS = options;
 		if (options.hide_sol_button == 1) {
 			let q = document.getElementsByClassName('buttons-group_answer');

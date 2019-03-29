@@ -25,7 +25,7 @@ function update_options() {
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
 	const version = document.getElementById('current_version');
-	version.innerHTML = '<b>Версия: v'+manifest.version+(' beta')+'</b>';
+	version.innerHTML = '<b>Версия: v'+manifest.version+'</b>';
 	
 	init_checkbox("cut_karma");
 	init_checkbox("hide_sol_button");
@@ -53,6 +53,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		condlist = background.localStorage.all_conditions;
 		textarea_conditions.value = condlist;
 	}
+
+	//Habr
+	init_checkbox("move_posttime_down");
+	init_checkbox("move_stats_up");
 	
 	window.onblur = update_options;
 });

@@ -293,6 +293,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			options[opt] = parseInt(localStorage[opt]);
 		});
 		sendResponse(options);
+	} else if (request.type == "getOptionsHabr") {
+		let options = {};
+		HABR_OPTIONS.forEach((opt)=>{
+			options[opt] = parseInt(localStorage[opt]);
+		});
+		sendResponse(options);
 	}
 });
 
@@ -303,7 +309,11 @@ let TOSTER_OPTIONS = [
 	'make_dark',
 ];
 
-if (localStorage.all_conditions === undefined) { //last added option
+let HABR_OPTIONS = [
+	'move_posttime_down','move_stats_up',
+];
+
+if (localStorage.move_stats_up === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -320,6 +330,9 @@ if (localStorage.all_conditions === undefined) { //last added option
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
 	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ff8";
+	//Habr options
+	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
+	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
 }
 
 //--------- DEBUG ---------
