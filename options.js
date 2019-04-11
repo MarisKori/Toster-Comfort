@@ -1,11 +1,20 @@
 let background = chrome.extension.getBackgroundPage();
 
-function init_checkbox(name) {
+function init_checkbox(name,options) {
 	let e = document.getElementById(name);
 	e.checked = background.localStorage[name]==1;
 	e.addEventListener("change", (e) => {
 		background.localStorage[name] = e.target.checked?1:0;
 	});
+	if (!options) return;
+	if (options.master) { //Более главная галка должна быть активна, чтобы эта имела смысл
+		let master = document.getElementById(options.master);
+		if (!master.checked || master.disabled) e.disabled = true;
+		master.addEventListener("change", (m) => {
+			if(m.target.checked)e.disabled=false;
+			else e.disabled=true;
+		});
+	}
 }
 
 let textarea_blacklist, blacklist, textarea_conditions, condlist;
@@ -22,10 +31,16 @@ function update_options() {
 	}
 }
 
-function checkConditionSyntaxError() {
+let cond_error, enable_notifications;
+function onLazyUpdate() {
+	//check Condition Syntax Errors
 	if (textarea_conditions.value != condlist) {
 		update_options();
-		document.getElementById('cond_error').innerHTML = background.cond_update_error_string;
+		cond_error.innerHTML = background.cond_update_error_string;
+	}
+	//check background options
+	if (!!+background.localStorage.enable_notifications != enable_notifications.checked) {
+		enable_notifications.checked = background.localStorage.enable_notifications == 1;
 	}
 }
 
@@ -48,6 +63,9 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");
+	init_checkbox("make_dark");
+	init_checkbox("enable_notifications"); enable_notifications = document.getElementById('enable_notifications');
+	init_checkbox("notify_if_inactive",{master:"enable_notifications"});
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {
@@ -60,7 +78,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		condlist = background.localStorage.all_conditions;
 		textarea_conditions.value = condlist;
 	}
-	setInterval(checkConditionSyntaxError, 1000);
+	cond_error = document.getElementById('cond_error');
+	setInterval(onLazyUpdate, 1000);
 
 	//Habr
 	init_checkbox("move_posttime_down");

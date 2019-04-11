@@ -373,6 +373,100 @@ function listenOnOptions(fn) {
 	else arr_on_options_callback.push(fn);
 }
 
+function updateNotifications() {
+	try {
+		if (OPTIONS.notify_if_inactive&&
+			(document.hidden===true
+				||document.webkitHidden===true
+				||document.visibilityState=='visible'
+				||document.visibilityState=='prerender'
+			)
+		) {
+			chrome.runtime.sendMessage({type:'tabIsActive'});
+			return;
+		}
+		chrome.runtime.sendMessage({
+			type: "getNotifications",
+		}, function(arr) {
+			for (q_id in arr) {
+				let item = arr[q_id];
+				let n = new Notification(item.w, {body: item.title, tag:item.title,
+					icon:'https://habrastorage.org/r/w120/files/c99/6d8/5e7/c996d85e75e64ff4b6624d2e3f694654.jpg'});
+				n.onclick = function(){
+					window.focus();
+					n.close();
+					window.location.href = "https://toster.ru/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
+				}
+			}
+		});
+	} catch(e) {
+		console.log('Extension unloaded!');
+		window.location.reload();
+	}
+}
+
+//Добавить кнопку "Следить", чтобы получать быстрые уведомления
+function addListenButton() {
+	if (location.href.indexOf('https://toster.ru/q/') == -1) return;
+	let m = location.href.match(/^https:\/\/toster\.ru\/q\/(\d+)/);
+	if (!m) return;
+	let qnum = m[1]-0;
+	let tags = document.querySelector('.question__tags');
+	if (!tags) return;
+	chrome.runtime.sendMessage({
+		type: "getSubStatus",
+		qnum: qnum,
+	}, function(status) {
+		const DISABLED = 'btn btn_subscribe';
+		const ENABLED = 'btn btn_subscribe btn_active';
+		let div = document.createElement('DIV');
+		div.style.position = 'absolute';
+		div.style.right = "30px";
+		let a = document.createElement('A');
+		a.className = status ? ENABLED : DISABLED;
+		a.innerHTML = status ? 'Отслеживается' : 'Следить';
+		a.title = "Получать быстрые уведомления";
+		div.appendChild(a);
+		//div.innerHTML = '<a class="btn btn_subscribe btn_active" href="asd" title="Получать быстрые уведомления">Следить</a>';
+		tags.appendChild(div);
+		//tags.innerHTML += '<div style="background-color:red;top: 0;left:100px;width:200px">подписаться</div>';
+		a.addEventListener('click',()=>{
+			if (!status) {
+				let subscribe_button = document.getElementById('question_interest_link_'+qnum);
+				if (subscribe_button && subscribe_button.className == DISABLED) {
+					subscribe_button.click();
+				}
+			}
+			chrome.runtime.sendMessage({type: "setSubStatus", qnum:qnum}, function(new_status) {
+				status = new_status;
+				a.className = new_status ? ENABLED : DISABLED;
+				a.innerHTML = new_status ? 'Отслеживается' : 'Следить';
+			});
+		});
+	});
+	
+}
+
+
+function initNotifications() {
+	if (!window.Notification || !Notification.permission) return; //not supported
+	if (Notification.permission == "denied") return;
+	if (Notification.permission != "granted") {
+		Notification.requestPermission(function (status) {
+			if (status !== "granted") {
+				chrome.runtime.sendMessage({type: "disableNotifications"});
+				return;
+			}
+			setInterval(updateNotifications, 3000);
+		});
+		return;
+	}
+	setInterval(updateNotifications, 3000);
+	updateNotifications();
+	//add subscribe button
+	addListenButton();
+}
+
 let OPTIONS = {};
 // Change page according to options
 function parse_opt() {
@@ -416,6 +510,8 @@ function parse_opt() {
 		}
 		arr_on_options_callback.forEach(fn=>fn());
 		is_options_loaded = true;
+		//Manage notifications
+		if (options.enable_notifications) initNotifications();
 	});
 }
 

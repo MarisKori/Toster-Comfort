@@ -44,6 +44,11 @@ function clean_db(timeout_days) {
 	//remove questions
 	for(let id in db.question) {
 		let q = db.question[id];
+		//ignore subscribtions
+		if (q.sub) {
+			if (!(now - q.ut < 400 * 24 * 60 * 60000)) delete db.question[id]; // 1 year
+			continue;
+		}
 		//ut means update_time
 		if (!(now - q.ut < timeout)) delete db.question[id]; // n days
 	}
@@ -137,9 +142,19 @@ function updateUser(nickname,timeout) {
 }
 
 function analyzeQuestion(question_id, now) {
-	db.question[question_id] = {is_pending:true, ut:now};
+	if (!now) now = (new Date()).getTime();
+	let q = {is_pending:true, ut:now};
+	db.question[question_id] = q;
 	saveDB();
 	getURL('https://toster.ru/q/' + question_id, function(text) {
+		//get title
+		const index_title_str = '<h1 class="question__title" itemprop="name ">';
+		let index_title = text.indexOf(index_title_str);
+		if (index_title > -1) {
+			let index_title2 = text.indexOf("</h1>\n",index_title);
+			let txt = text.substring(index_title + index_title_str.length + 1, index_title2).trim();
+			if (txt) q.t = txt; //title!
+		}
 		//get user name
 		let index_name = text.indexOf('<meta itemprop="name" content="');
 		if (index_name > -1) {
@@ -150,8 +165,8 @@ function analyzeQuestion(question_id, now) {
 			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
 			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
-				db.question[question_id].is_pending = false;
-				db.question[question_id].user_id = user_nickname;
+				q.is_pending = false;
+				q.user_id = user_nickname;
 				let user = db.user[user_nickname];
 				if (!user) user = db.user[user_nickname] = {};
 				user.name = user_name;
@@ -162,7 +177,7 @@ function analyzeQuestion(question_id, now) {
 		//get question tags
 		let index_tags = text.indexOf('<ul class="tags-list">');
 		if (index_tags > -1) {
-			let tags = db.question[question_id].tags = {};
+			let tags = q.tags = {};
 			let index_tags2 = text.indexOf('</ul>', index_tags);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
 			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
@@ -310,6 +325,37 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			options[opt] = parseInt(localStorage[opt]);
 		});
 		sendResponse(options);
+	} else if (request.type == "getNotifications") {
+		let now = (new Date()).getTime();
+		for(q_id in arr_notifications) { //Чистим от старых
+			let item = arr_notifications[q_id];
+			if (now - item.tm > 40000) {
+				delete arr_notifications[q_id];
+			}
+		}
+		sendResponse(arr_notifications);
+		arr_notifications = {};
+	} else if (request.type == "disableNotifications") {
+		localStorage.enable_notifications = 0;
+	} else if (request.type == "tabIsActive") {
+		notifications_pause = (new Date()).getTime();
+	} else if (request.type == "getSubStatus") {
+		let qnum = request.qnum;
+		let question = db.question[qnum];
+		sendResponse(question && !!question.sub);
+	} else if (request.type == "setSubStatus") {
+		let qnum = request.qnum;
+		let question = db.question[qnum];
+		if (!question) {
+			analyzeQuestion(qnum);
+			question = db.question[qnum];
+		}
+		if (question.sub) {
+			delete question.sub;
+		} else {
+			question.sub = 1;
+		}
+		sendResponse(!!question.sub);
 	}
 });
 
@@ -317,14 +363,14 @@ let TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
-	'make_dark',
+	'make_dark', 'enable_notifications', 'notify_if_inactive',
 ];
 
 let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.hide_comment_form_by_default === undefined) { //last added option
+if (localStorage.enable_notifications === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -341,6 +387,8 @@ if (localStorage.hide_comment_form_by_default === undefined) { //last added opti
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
 	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
 	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ffc";
+	if (localStorage.enable_notifications === undefined) localStorage.enable_notifications=0;
+	if (localStorage.notify_if_inactive === undefined) localStorage.notify_if_inactive=0;
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
@@ -436,6 +484,79 @@ function update_conditions() {
 }
 if (localStorage.all_conditions) update_conditions();
 
+//Notofocations
 
-
+var arr_notifications = {};
+let notifications_timer;
+let notifications_pause; //Метка активации паузы. 30 секунд нельзя спамить.
+const tm_browser_load = (new Date()).getTime();
+function updateNotificationOptions() {
+	if (notifications_timer !== undefined) {
+		clearInterval(notifications_timer);
+		notifications_timer = undefined;
+	}
+	if (localStorage.enable_notifications == 1) {
+		notifications_timer = setInterval(()=>{
+			let now = (new Date()).getTime();
+			if (now - notifications_pause < 30000) return; //Выдерживаем паузу.
+			if (now - tm_browser_load < 60000) return; //После загрузки расширения не паникуем, не спамим, молчим.
+			let xhr = new XMLHttpRequest();
+			xhr.open('GET', 'https://toster.ru/my/tracker', true);
+			xhr.send();
+			xhr.onload = function() {
+				let now = (new Date()).getTime();
+				if (xhr.status != 200) return;
+				let start = xhr.response.indexOf('<section class="page__body"');
+				let end = xhr.response.indexOf('</section>',start);
+				if (start === -1 || end === -1) return console.log('Ошибка парсинга трекера уведомлений');
+				let html = xhr.response.substring(start,end);
+				let arr_notes = html.match(/toster\.ru\/\q\/\d+\?e=.*/g); //Уведомления
+				if (arr_notes) arr_notes.forEach(s=>{
+					let m = s.match(/toster\.ru\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
+					if (!m) return;
+					let q_id=m[1]-0;
+					let e=m[2]-0;
+					let anchor = m[3];
+					let what = m[4];
+					if (what=='комментарий'||what=='ответ') what='Новый '+what;
+					else what='Что-то новое ('+what+')';
+					let q = db.question[q_id];
+					if (!q) {
+						analyzeQuestion(q_id, now);
+						q = db.question[q_id];
+					}
+					if (!q.e || q.e < e) { //Новые данные
+						q.e = e;
+						if (q.sub) { //Подписка на вопрос
+							let notif = arr_notifications[q_id];
+							if(!notif) {
+								notif = {
+									q_id:q_id,
+									title:q.t,
+								};
+								arr_notifications[q_id]=notif;
+							}
+							notif.e = e;
+							notif.w = what;
+							notif.anchor=anchor;
+							notif.tm = now;
+						}
+					}
+				});
+				let arr_q = html.match(/<a class="question__title-link" href="https:\/\/toster\.ru\/q\/(\d+)">\n {6}(.*) {4}<\/a>\n/g);
+				if (arr_q) arr_q.forEach(s=>{
+					let q_id = s.match(/toster\.ru\/\q\/(\d+)/)[1];
+					let title = s.substring(s.indexOf("\n")+1,s.indexOf("</a>\n")).trim();
+					let q = db.question[q_id];
+					if (!q) {
+						analyzeQuestion(q_id, now);
+						q = db.question[q_id];
+					}
+					q.t = title; //Быстрый синхронный title
+				});
+			};
+		}, 15000);
+	}
+}
+updateNotificationOptions();
 
