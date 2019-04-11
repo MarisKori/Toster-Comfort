@@ -324,9 +324,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		HABR_OPTIONS.forEach((opt)=>{
 			options[opt] = parseInt(localStorage[opt]);
 		});
+		if (localStorage.habr_fix_lines == 1) {
+			options.habr_css = habr_css_fix_lines;
+		}
 		sendResponse(options);
 	} else if (request.type == "getNotifications") {
 		let now = (new Date()).getTime();
+		getNotifications_last_time = now;
 		for(q_id in arr_notifications) { //Чистим от старых
 			let item = arr_notifications[q_id];
 			if (now - item.tm > 40000) {
@@ -359,6 +363,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	}
 });
 
+
 let TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
@@ -370,7 +375,7 @@ let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.enable_notifications === undefined) { //last added option
+if (localStorage.habr_fix_lines === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -393,6 +398,7 @@ if (localStorage.enable_notifications === undefined) { //last added option
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
 	if (localStorage.hide_comment_form_by_default === undefined) localStorage.hide_comment_form_by_default=0;
+	if (localStorage.habr_fix_lines === undefined) localStorage.habr_fix_lines=0;
 }
 
 //--------- DEBUG ---------
@@ -488,8 +494,9 @@ if (localStorage.all_conditions) update_conditions();
 
 var arr_notifications = {};
 let notifications_timer;
-let notifications_pause; //Метка активации паузы. 30 секунд нельзя спамить.
+let notifications_pause = 0; //Метка активации паузы. 30 секунд нельзя спамить.
 const tm_browser_load = (new Date()).getTime();
+let getNotifications_last_time = 0; //Последнее обращение страницы.
 function updateNotificationOptions() {
 	if (notifications_timer !== undefined) {
 		clearInterval(notifications_timer);
@@ -500,6 +507,7 @@ function updateNotificationOptions() {
 			let now = (new Date()).getTime();
 			if (now - notifications_pause < 30000) return; //Выдерживаем паузу.
 			if (now - tm_browser_load < 60000) return; //После загрузки расширения не паникуем, не спамим, молчим.
+			if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
 			let xhr = new XMLHttpRequest();
 			xhr.open('GET', 'https://toster.ru/my/tracker', true);
 			xhr.send();
@@ -559,4 +567,74 @@ function updateNotificationOptions() {
 	}
 }
 updateNotificationOptions();
+
+//---------------------- CSS --------------------
+
+const habr_css_fix_lines = `
+/* ---------- МАГИЯ --------- /*
+
+/* Магия в комментариях */
+.content-list__item_comment  {
+    /* Делаем вертикальные линии. */
+    border-left: 1px solid #707070;
+}
+
+.comment__message {
+    /* Делаем отсутп слева, выравнивание по положению ника (на глаз). */
+    padding-left: 33px;
+    /* В Chrome и Opera 12 - почти идеально. */;
+}
+
+.comment__footer {
+    /* Кнопку "ответить" тоже сдвигаем вправо, выравниваем. */
+    padding-left: 33px;
+}
+
+.comment__folding-dotholder {
+    /* Удаление точки при наведении на комментарий. Типа спасибо. Возможно, было и удобно кому-то. */
+    background: none;
+    display: none !important;
+}
+
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+{
+    border-left: 1px solid #ff7030;
+    /* Делаем 17ю линию другим цветом, т.к. это предел вложенности. */;
+}
+
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment .content-list__item_comment
+.content-list__item_comment
+{
+    border-left: none;
+    /* Далее убираем. */;
+}
+
+.megapost-cover__img, .megapost-cover__img_darken, .megapost-cover__inner {
+    background:none !important;
+    background-color:white !important;
+}
+
+.megapost-cover__inner, .megapost-cover_short, .megapost-cover__img  {
+    height:auto !important;
+}
+
+.preview-data__title-link, .megapost-cover_light .list__item, .megapost-cover_light .list__item-link,
+.megapost-cover_light .preview-data__blog-link, .megapost-cover_light .preview-data__time-published {
+    color: black !important;
+}
+`;
 

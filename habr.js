@@ -44,9 +44,7 @@ function hideCommentFormByDefault() {
 		remove_fn();
 		comment_div.className = OPENED; //Если кликнули по надписи, то нужно также поменять её текст.
 	}
-	document.querySelectorAll('.comment__footer-link').forEach(e=>e.addEventListener('click',()=>{ //WTF?? Need neat fix!
-		remove_fn();
-	}));
+	document.querySelectorAll('.comment__footer-link').forEach(e=>e.addEventListener('click',remove_fn));
 	comment_text.addEventListener('click',onclick);
 	//Меняем стиль текста-кнопки и скрываем редактор
 	comment_div.className = CLOSED;
@@ -81,7 +79,14 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (OPTIONS.hide_comment_form_by_default) {
 			hideCommentFormByDefault();
 		}
+		if (OPTIONS.habr_css) {
+			let css = document.createElement("style");
+			css.type = "text/css";
+			css.innerHTML = OPTIONS.habr_css;
+			document.body.appendChild(css);
+		}
 	});
 });
+
 
 

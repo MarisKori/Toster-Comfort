@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("move_posttime_down");
 	init_checkbox("move_stats_up");
 	init_checkbox("hide_comment_form_by_default");
+	init_checkbox("habr_fix_lines");
 	
 	window.onblur = update_options;
 });
