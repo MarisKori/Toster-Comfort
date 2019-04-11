@@ -12,6 +12,10 @@
 	font-weight: bold;
 	background-color: #ff0;
   }
+  .error {
+    color: red;
+	font-weight: bold;
+  }
 </style>
 </head><body>
 <div id="current_version"></div>
@@ -79,11 +83,12 @@
 
 <p>
   Дополнительные условия (по одному на строку). <span class=new>(new!)</span><br>
-  Формат: javascript-условие = действие.<br>
+  Формат: Си-подобное-условие = действие.<br>
   Действием может быть слово "hide" или "#f00".<br>
   В условии можно <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">использовать</a>:
     questions, answers, solutions, karma, comments, publications и функцию tag<br>
-  <textarea id="all_conditions" cols=100 rows=5></textarea>
+  <textarea id="all_conditions" cols=100 rows=5></textarea><br>
+  <span class=error id="cond_error"></span>
 </p>
 
 <h3>Опции Хабра</h3>

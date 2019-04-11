@@ -197,8 +197,10 @@ if (localStorage.save_form_to_storage) { //last added option (reset on each upda
 
 let outer_tag = ()=>{};
 
+var condition_error_string;
 //Prepare environment and call eval()
 function checkCondition(cond, current_data) {
+	condition_error_string = '';
 	//Special function triggered from eval() - check if a question has the tag
 	outer_tag = function(s) {
 		let tag_lower = s.toLowerCase();
@@ -210,24 +212,33 @@ function checkCondition(cond, current_data) {
 		return false;
 	}
 	//Environment
-	let env = {
-		questions: current_data.u.cnt_q || 999,
-		answers: current_data.u.cnt_a || 999,
-		solutions: current_data.u.solutions || 100,
-		karma: current_data.u.karma || 0,
-		comments: current_data.u.stat_comment || 0,
-		articles: current_data.u.stat_pub || 0,
-	}
-	env.q = env.questions;
-	env.a = env.answers;
-	env.s = env.solutions;
-	env.k = env.karma;
-	env.c = env.comments;
-	env.publications = env.articles;
-	env.p = env.publications;
+	let env;
+	if (current_data.u) {
+		env = {
+			questions: current_data.u.cnt_q || 999,
+			answers: current_data.u.cnt_a || 999,
+			solutions: current_data.u.solutions || 100,
+			karma: current_data.u.karma || 0,
+			comments: current_data.u.stat_comment || 0,
+			articles: current_data.u.stat_pub || 0,
+			nickname: current_data.u.nickname || '',
+			//title: ???, //сам текст вопроса нужен ли?
+		}
+		env.q = env.questions;
+		env.a = env.answers;
+		env.s = env.solutions;
+		env.k = env.karma;
+		env.c = env.comments;
+		env.publications = env.articles;
+		env.p = env.publications;
+		env.nick = env.nickname;
+		env.n = env.nick;
+	} else env = current_data;
 	try {
 		return eval.lite(cond, env);
 	} catch(e) {
+		if ((typeof e == 'object') && (typeof e.message == 'string')) condition_error_string = e.message;
+		else condition_error_string = e + '';
 		return false;
 	}
 }
@@ -360,22 +371,67 @@ if (localStorage.tag_blacklist) update_blacklist();
 
 // ------------ Дополнительные условия показа вопросов -------------
 
+
+const isValidAction_image = document.createElement("img");
+function isValidAction(stringToTest) {
+	if (stringToTest === 'hide') return true;
+    if (!stringToTest || stringToTest === 'inherit' || stringToTest === 'transparent') return false;
+
+    let image = isValidAction_image;
+    image.style.color = "rgb(0, 0, 0)";
+    image.style.color = stringToTest;
+    if (image.style.color !== "rgb(0, 0, 0)") { return true; }
+    image.style.color = "rgb(255, 255, 255)";
+    image.style.color = stringToTest;
+    return image.style.color !== "rgb(255, 255, 255)";
+}
+
+let example_environment = {
+	questions: 1, q:1,
+	answers: 1, a:1,
+	solutions: 100, s:100,
+	karma: 0, k:0,
+	comments: 0, c:0,
+	articles: 0, publications:0, p:0,
+	nickname: 'admin', nick:'admin', n:'admin',
+	//title: 'Toster?', t:'Toster?',
+}
+var cond_update_error_string;
 let db_conditions = [];
 function update_conditions() {
+	cond_update_error_string = '';
 	db_conditions = [];
 	const lines = localStorage.all_conditions.split("\n");
 	for(let i=0;i<lines.length;i++) {
 		let rule = lines[i].trim(); //Строка, содержащая отдельное правило
 		if (rule.indexOf('//') !== -1) rule = rule.split('//')[0].trim();
-		if (!rule) continue;
+		if (!rule) {
+			//Пустая строка или комментарий
+			continue;
+		}
 		let eq_idx = rule.lastIndexOf('='); //Последний знак "="
-		if (eq_idx < 1 || rule[eq_idx-1] == '=') continue;
+		if (eq_idx < 1 || rule[eq_idx-1] == '=') {
+			if(!cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': '+rule+' не является правилом.';
+			continue;
+		}
 		let rule_cond_str = rule.substring(0,eq_idx).trim(); //Условие правила - eval(rule_cond_str)
 		let rule_action_str = rule.substring(eq_idx+1).trim(); //Действие правила - #ff0 или hide
+		if (!rule_action_str) {
+			if(!cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': не задано действие.';
+			continue;
+		}
+		if (rule_action_str.toLowerCase() == 'hide') rule_action_str = 'hide';
+		if (!isValidAction(rule_action_str)) {
+			if(!cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': '+rule_action_str+' не является цветом или действием.';
+			continue;
+		}
 		db_conditions.push({
 			cond: rule_cond_str,
 			act: rule_action_str,
 		});
+		//test condition
+		checkCondition(rule_cond_str, example_environment);
+		if (condition_error_string && !cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': '+condition_error_string;
 	}
 }
 if (localStorage.all_conditions) update_conditions();

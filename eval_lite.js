@@ -50,6 +50,13 @@ var TOKEN_FN = {
 	'||':s=>{let b = s.pop().token; return new Token(s.pop().token || b)},
 	//custom functions
 	'tag':s=>new Token(outer_tag(s.pop().token)), // outer_tag is external function.
+	'contains':s=>{let needle = s.pop().token; let haystack = s.pop().token; return new Token(haystack.indexOf(needle)>-1)},
+	'containsWord':s=>{
+		let needle = s.pop().token;
+		let haystack = s.pop().token;
+		needle = '\\b' + needle.replace(/ /g, '\\s+') + '\\b';
+		return new Token(haystack.match(needle)!==null);
+	},
 }
 
 Array.prototype.peek = function() {
@@ -145,7 +152,10 @@ function MakeTokens(str) {
 		}
 		if (current_token === '') current_type = 0;
 	}
-	if (current_token !== '') AddToken(); //tokens.push(current_token);
+	if (current_token !== '') {
+		if (current_type == TYPE_STRING) throw "Незакрытая строка";
+		AddToken(); //tokens.push(current_token);
+	}
 	return tokens;
 }
 
@@ -164,6 +174,7 @@ function MakeRPN(tokens) { // https://en.wikipedia.org/wiki/Reverse_Polish_notat
 			while (true) {
 				if (!stack.length) {
 					console.log("Missing '(' or ','"); //ERROR
+					throw "Missing '(' or ','";
 					break;
 				} else if (stack.peek() == '(') break;
 				else output.push(stack.pop());
@@ -184,14 +195,23 @@ function MakeRPN(tokens) { // https://en.wikipedia.org/wiki/Reverse_Polish_notat
 				//только операторы?
 				output.push(stack.pop());
 			}
-			if (stack.length === 0) console.log("Missing '('");
+			if (stack.length === 0) {
+				console.log("Missing '('");
+				throw "Missing '('";
+			}
 			stack.pop();
 			if (stack.length && stack.peek().type == TYPE_FUNCTION) output.push(stack.pop());
-		} else console.log('Unknown token type:',type);
+		} else {
+			console.log('Unknown token type:',type);
+			throw 'Unknown token type: '+type;
+		}
 	}
 	while (stack.length) {
 		let op = stack.pop();
-		if (op.type == TYPE_BRACKETS) console.log('Unexpected bracket');
+		if (op.type == TYPE_BRACKETS) {
+			console.log('Unexpected bracket');
+			throw 'Unexpected bracket';
+		}
 		else output.push(op);
 	}
 	return output;
@@ -207,6 +227,7 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 			let v = env[token.token]; //value from environment
 			if (v === undefined) {
 				console.log('Unknown variable:',token);
+				throw 'Unknown variable: '+token.token;
 			} else {
 				let tok;
 				if (typeof v == 'function') {
@@ -224,10 +245,16 @@ function CalcRPN(rpn, env) { // https://en.wikipedia.org/wiki/Shunting-yard_algo
 		} else if (type == TYPE_OPERATOR || type == TYPE_FUNCTION) {
 			let resToken = token.fn(stack);
 			stack.push(resToken);
-		} else console.log("Can't process token, bad type:",token);
+		} else {
+			console.log("Can't process token, bad type:",token);
+			throw "Can't process token '"+token.token+"', bad type: "+type;
+		}
 		//console.log(stack.map(v=>v.token+'('+(typeof v.token)+')').join());
 	});
-	if (stack.length != 1) console.log('Final RPN stack len:',stack.length, stack);
+	if (stack.length != 1) {
+		console.log('Final RPN stack len:',stack.length, stack);
+		throw 'Final RPN stack len: ' + stack.length;
+	}
 	return stack[0].token;
 }
 

@@ -22,6 +22,13 @@ function update_options() {
 	}
 }
 
+function checkConditionSyntaxError() {
+	if (textarea_conditions.value != condlist) {
+		update_options();
+		document.getElementById('cond_error').innerHTML = background.cond_update_error_string;
+	}
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
 	const version = document.getElementById('current_version');
@@ -53,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		condlist = background.localStorage.all_conditions;
 		textarea_conditions.value = condlist;
 	}
+	setInterval(checkConditionSyntaxError, 1000);
 
 	//Habr
 	init_checkbox("move_posttime_down");

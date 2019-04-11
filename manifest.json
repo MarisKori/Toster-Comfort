@@ -4,7 +4,7 @@
 	"name": "Toster Comfort",
 	"short_name": "Toster Comfort",
 	"description": "Добавляет больше информации и делает навигацию удобнее.",
-	"version": "0.6",
+	"version": "0.6.1",
 	"icons": {
 			"16": "images/toster_logo_16.png",
 			"24": "images/toster_logo_24.png",
