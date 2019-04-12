@@ -281,6 +281,19 @@ function parse_q() {
 				nickname:nickname,
 			});
 			request_user[nickname] = i==0 ? 1 : true;
+			//Предполагаем, что первый в списке - автор вопроса.
+			if (i == 0) {
+				let qm = location.href.match(/toster\.ru\/q\/(\d+)/);
+				let tags = document.querySelector('.tags-list');
+				let q_title = document.querySelector('.question__title');
+				chrome.runtime.sendMessage({
+					type: 'directQuestionUpdate',
+					nickname:nickname,
+					q_id:qm && qm[1]-0,
+					tags_html: tags && tags.outerHTML,
+					title: q_title && q_title.innerHTML.trim(),
+				});
+			}
 		}
 	}
 	//console.log(elem_user);
@@ -465,6 +478,19 @@ function initNotifications() {
 	updateNotifications();
 	//add subscribe button
 	addListenButton();
+	//Пересчет уведомлений для иконки
+	let ul = document.querySelector(".events-list_navbar");
+	if (ul) {
+		let counter = ul.querySelector(".events-list__item_more");
+		let m, cnt;
+		if (counter && (m = counter.innerHTML.match(/<span>(\d+)<\/span>/))) {
+			cnt = m[1] - 0;
+		} else {
+			let lis = ul.querySelectorAll(".events-list__item");
+			cnt = lis.length;
+		}
+		chrome.runtime.sendMessage({type: "updateIconNum", cnt:cnt});
+	}
 }
 
 let OPTIONS = {};

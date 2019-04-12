@@ -5,14 +5,23 @@ function init_checkbox(name,options) {
 	e.checked = background.localStorage[name]==1;
 	e.addEventListener("change", (e) => {
 		background.localStorage[name] = e.target.checked?1:0;
+		if (options && options.update) background[options.update]();
 	});
 	if (!options) return;
 	if (options.master) { //Более главная галка должна быть активна, чтобы эта имела смысл
 		let master = document.getElementById(options.master);
+		let disabled = false;
+		function updateColor() { //update color if element is disabled or not
+			if (e.disabled == disabled) return;
+			disabled = e.disabled;
+			e.parentNode.className = disabled ? "disabled" : "";
+		}
 		if (!master.checked || master.disabled) e.disabled = true;
+		updateColor();
 		master.addEventListener("change", (m) => {
 			if(m.target.checked)e.disabled=false;
 			else e.disabled=true;
+			updateColor();
 		});
 	}
 }
@@ -31,13 +40,17 @@ function update_options() {
 	}
 }
 
-let cond_error, enable_notifications;
-function onLazyUpdate() {
-	//check Condition Syntax Errors
+function checkConditionSyntax() { //textarea: 
 	if (textarea_conditions.value != condlist) {
 		update_options();
 		cond_error.innerHTML = background.cond_update_error_string;
 	}
+}
+
+let cond_error, enable_notifications;
+function onLazyUpdate() {
+	//check Condition Syntax Errors
+	checkConditionSyntax();
 	//check background options
 	if (!!+background.localStorage.enable_notifications != enable_notifications.checked) {
 		enable_notifications.checked = background.localStorage.enable_notifications == 1;
@@ -64,8 +77,12 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");
 	init_checkbox("make_dark");
-	init_checkbox("enable_notifications"); enable_notifications = document.getElementById('enable_notifications');
+	init_checkbox("enable_notifications",{update:'updateNotificationOptions'});
+	enable_notifications = document.getElementById('enable_notifications');
 	init_checkbox("notify_if_inactive",{master:"enable_notifications"});
+	init_checkbox("always_notify_my_questions",{master:"enable_notifications"});
+	init_checkbox("notify_about_likes",{master:"enable_notifications"});
+	init_checkbox("notify_about_solutions",{master:"enable_notifications"});
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {
@@ -79,7 +96,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		textarea_conditions.value = condlist;
 	}
 	cond_error = document.getElementById('cond_error');
+	cond_error.innerHTML = background.cond_update_error_string;
 	setInterval(onLazyUpdate, 1000);
+	textarea_conditions.addEventListener('keydown',()=>setTimeout(checkConditionSyntax,0));
+	textarea_conditions.addEventListener('input',checkConditionSyntax); //for cut/paste and moves of text by mouse
+	
 
 	//Habr
 	init_checkbox("move_posttime_down");

@@ -16,6 +16,9 @@
     color: red;
 	font-weight: bold;
   }
+  .disabled {
+    color: #ccc;
+  }
 </style>
 </head><body>
 <div id="current_version"></div>
@@ -83,10 +86,22 @@
 	<input id="notify_if_inactive" type="checkbox">
 	Уведомлять только при неактивной вкладке <span class=new>(new!)</span>
 </label>
+<label for="always_notify_my_questions">
+	<input id="always_notify_my_questions" type="checkbox">
+	Всегда уведомлять об активности в моих собственных вопросах <span class=new>(new!)</span>
+</label>
+<label for="notify_about_likes">
+	<input id="notify_about_likes" type="checkbox">
+	Уведомлять о лайках на мои ответы <span class=new>(new!)</span>
+</label>
+<label for="notify_about_solutions">
+	<input id="notify_about_solutions" type="checkbox">
+	Уведомлять о выбранных решениях <span class=new>(new!)</span>
+</label>
 
 <p>
   Чёрный список тегов (по одному на строку):<br>
-  <textarea id="tag_blacklist" cols=100 rows=15></textarea>
+  <textarea id="tag_blacklist" cols=100 rows=5></textarea>
 </p>
 
 <p>

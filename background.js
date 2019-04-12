@@ -141,6 +141,17 @@ function updateUser(nickname,timeout) {
 	}
 }
 
+function parseTags(txt) {
+	let tags = {};
+	let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
+	let a = r.exec(txt);
+	while (a) {
+		tags[a[1]] = a[2];
+		a = r.exec(txt);
+	}
+	return tags;
+}
+
 function analyzeQuestion(question_id, now) {
 	if (!now) now = (new Date()).getTime();
 	let q = {is_pending:true, ut:now};
@@ -165,7 +176,7 @@ function analyzeQuestion(question_id, now) {
 			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
 			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
-				q.is_pending = false;
+				delete q.is_pending;
 				q.user_id = user_nickname;
 				let user = db.user[user_nickname];
 				if (!user) user = db.user[user_nickname] = {};
@@ -177,15 +188,9 @@ function analyzeQuestion(question_id, now) {
 		//get question tags
 		let index_tags = text.indexOf('<ul class="tags-list">');
 		if (index_tags > -1) {
-			let tags = q.tags = {};
-			let index_tags2 = text.indexOf('</ul>', index_tags);
+			let index_tags2 = text.indexOf('</ul>', index_tags || 0);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
-			let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
-			let a = r.exec(txt);
-			while (a) {
-				tags[a[1]] = a[2];
-				a = r.exec(txt);
-			}
+			q.tags = parseTags(txt);
 		}
 	});
 }
@@ -330,6 +335,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		sendResponse(options);
 	} else if (request.type == "getNotifications") {
 		let now = (new Date()).getTime();
+		if (now - notifications_pause < 30000) { //Выдерживаем паузу.
+			sendResponse({}); //Но не обнуляем
+			return;
+		}
+		if (now - tm_browser_load < 60000) { //После загрузки расширения не паникуем, не спамим, молчим.
+			arr_notifications = {}; //Сливаем все уведомления в трубу.
+		}
+		
 		getNotifications_last_time = now;
 		for(q_id in arr_notifications) { //Чистим от старых
 			let item = arr_notifications[q_id];
@@ -343,6 +356,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		localStorage.enable_notifications = 0;
 	} else if (request.type == "tabIsActive") {
 		notifications_pause = (new Date()).getTime();
+	} else if (request.type == "updateIconNum") {
+		chrome.browserAction.setBadgeText({text:""+request.cnt});
 	} else if (request.type == "getSubStatus") {
 		let qnum = request.qnum;
 		let question = db.question[qnum];
@@ -359,7 +374,19 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		} else {
 			question.sub = 1;
 		}
+		question.ut = (new Date()).getTime();
 		sendResponse(!!question.sub);
+	} else if (request.type == "directQuestionUpdate") {
+		if (!request.nickname || !request.q_id) return;
+		let q = db.question[request.q_id];
+		if (!q) {
+			q = {};
+			db.question[request.q_id] = q;
+		}
+		q.user_id = request.nickname;
+		if (request.tags_html) q.tags = parseTags(request.tags_html);
+		if (request.title) q.t = request.title;
+		q.ut = (new Date()).getTime();
 	}
 });
 
@@ -369,13 +396,14 @@ let TOSTER_OPTIONS = [
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
 	'make_dark', 'enable_notifications', 'notify_if_inactive',
+	//'always_notify_my_questions', 'notify_about_likes', 'notify_about_solutions',
 ];
 
 let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.habr_fix_lines === undefined) { //last added option
+if (localStorage.always_notify_my_questions === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -394,6 +422,9 @@ if (localStorage.habr_fix_lines === undefined) { //last added option
 	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ffc";
 	if (localStorage.enable_notifications === undefined) localStorage.enable_notifications=0;
 	if (localStorage.notify_if_inactive === undefined) localStorage.notify_if_inactive=0;
+	if (localStorage.always_notify_my_questions === undefined) localStorage.always_notify_my_questions=0;
+	if (localStorage.notify_about_likes === undefined) localStorage.notify_about_likes=0;
+	if (localStorage.notify_about_solutions === undefined) localStorage.notify_about_solutions=0;
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
@@ -488,10 +519,11 @@ function update_conditions() {
 		if (condition_error_string && !cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': '+condition_error_string;
 	}
 }
-if (localStorage.all_conditions) update_conditions();
+if (localStorage.all_conditions) setTimeout(update_conditions,0); //because eval.lite is not defined yet
 
 //Notofocations
 
+chrome.browserAction.setBadgeBackgroundColor({color:"#777"});
 var arr_notifications = {};
 let notifications_timer;
 let notifications_pause = 0; //Метка активации паузы. 30 секунд нельзя спамить.
@@ -504,38 +536,89 @@ function updateNotificationOptions() {
 	}
 	if (localStorage.enable_notifications == 1) {
 		notifications_timer = setInterval(()=>{
-			let now = (new Date()).getTime();
-			if (now - notifications_pause < 30000) return; //Выдерживаем паузу.
-			if (now - tm_browser_load < 60000) return; //После загрузки расширения не паникуем, не спамим, молчим.
-			if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
+			//let now = (new Date()).getTime();
+			//if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
 			let xhr = new XMLHttpRequest();
 			xhr.open('GET', 'https://toster.ru/my/tracker', true);
 			xhr.send();
 			xhr.onload = function() {
 				let now = (new Date()).getTime();
 				if (xhr.status != 200) return;
+				//Текущий пользователь
+				let current_user;
+				if (localStorage.always_notify_my_questions == 1) {
+					let m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/toster\.ru\/user\/([^"]+)">/);
+					if (m) current_user=m[1];
+				}
+				//Считаем кол-во уведомлений
+				if (localStorage.enable_notifications == 1) {
+					let cnt = 0;
+					let start = xhr.response.indexOf('<ul class="events-list events-list_navbar">');
+					let end = xhr.response.indexOf('</ul>',start);
+					if (start > -1 && end > -1) {
+						let aside_notifications = xhr.response.substring(start,end);
+						let m = aside_notifications.match(/<a class="link_light-blue" href="https:\/\/toster\.ru\/my\/tracker">\n.*\n\s*<span>(\d+)<\/span>/m);
+						if (m) {
+							cnt = m[1]-0;
+						} else {
+							m = aside_notifications.match(/<li class=/g);
+							let li_cnt = m ? m.length : 0;
+							cnt = li_cnt;
+						}
+					}
+					chrome.browserAction.setBadgeText({text:""+cnt});
+				}
+				//Обрезаем и берем главный список
 				let start = xhr.response.indexOf('<section class="page__body"');
 				let end = xhr.response.indexOf('</section>',start);
 				if (start === -1 || end === -1) return console.log('Ошибка парсинга трекера уведомлений');
 				let html = xhr.response.substring(start,end);
 				let arr_notes = html.match(/toster\.ru\/\q\/\d+\?e=.*/g); //Уведомления
 				if (arr_notes) arr_notes.forEach(s=>{
-					let m = s.match(/toster\.ru\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
+					let m = s.match(/(\s*)<a href="https:\/\/toster\.ru\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
 					if (!m) return;
-					let q_id=m[1]-0;
-					let e=m[2]-0;
-					let anchor = m[3];
-					let what = m[4];
-					if (what=='комментарий'||what=='ответ') what='Новый '+what;
+					let spaces = m[1];
+					let q_id=m[2]-0;
+					let e=m[3]-0;
+					let anchor = m[4];
+					let what = m[5].trim();
+					if (what=='комментарий') what='Новый '+what;
+					else if (what=='ответ') {
+						//А вот это совсем дикость и не правильно. Говнокод, чё.
+						//Мы будем решать, что за тип уведомления, на основе (внимание!) количества пробелов!
+						//Если пробелов 8, то это обычный ответ.
+						//Если пробелов 16, то это отметка о том, что ответ является решением.
+						if (spaces.length==8) {
+							what='Новый '+what;
+						} else if(sapces.length==16) {
+							if (localStorage.notify_about_solutions) what='Выбрано решение';
+							else return; //ignore solutions
+						} else what='Ответ? (debug:'+spaces.length+')';
+					}
+					else if (what=='ваш ответ') {
+						//Если пробелов 8, то это обычный лайк ответа.
+						//Если пробелов 16, то это отметка о том, что ответ является решением.
+						if (spaces.length==8) {
+							if (localStorage.notify_about_likes) what='Лайк';
+							else return; //ignore likes
+						} else if(sapces.length==16) {
+							if (localStorage.notify_about_solutions) what='Выбрано решение';
+							else return; //ignore solutions
+						} else what='Ваш ответ? (debug:'+spaces.length+')';
+					}
+					else if (what=='комментарии') {
+						what = 'Вас упомянули';
+					}
 					else what='Что-то новое ('+what+')';
 					let q = db.question[q_id];
 					if (!q) {
 						analyzeQuestion(q_id, now);
 						q = db.question[q_id];
 					}
+					if (!q.is_pending) q.ut = now;
 					if (!q.e || q.e < e) { //Новые данные
 						q.e = e;
-						if (q.sub) { //Подписка на вопрос
+						if (q.sub || current_user && q.user_id == current_user) { //Подписка на вопрос
 							let notif = arr_notifications[q_id];
 							if(!notif) {
 								notif = {
@@ -564,6 +647,8 @@ function updateNotificationOptions() {
 				});
 			};
 		}, 15000);
+	} else {
+		chrome.browserAction.setBadgeText({text:""});
 	}
 }
 updateNotificationOptions();
