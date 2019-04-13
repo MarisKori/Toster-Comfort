@@ -3,16 +3,17 @@ let background = chrome.extension.getBackgroundPage();
 function init_checkbox(name,options) {
 	let e = document.getElementById(name);
 	e.checked = background.localStorage[name]==1;
+	if (options && options.init) options.init(e);
 	e.addEventListener("change", (e) => {
 		background.localStorage[name] = e.target.checked?1:0;
-		if (options && options.update) background[options.update]();
+		if (options && options.update) background[options.update](e.target.value);
 	});
-	if (!options) return;
+	if (!options) return e;
 	if (options.master) { //Более главная галка должна быть активна, чтобы эта имела смысл
 		let master = document.getElementById(options.master);
 		let disabled = false;
 		function updateColor() { //update color if element is disabled or not
-			if (e.disabled == disabled) return;
+			if (e.disabled == disabled) return e;
 			disabled = e.disabled;
 			e.parentNode.className = disabled ? "disabled" : "";
 		}
@@ -24,6 +25,7 @@ function init_checkbox(name,options) {
 			updateColor();
 		});
 	}
+	return e;
 }
 
 let textarea_blacklist, blacklist, textarea_conditions, condlist;
@@ -83,6 +85,14 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("always_notify_my_questions",{master:"enable_notifications"});
 	init_checkbox("notify_about_likes",{master:"enable_notifications"});
 	init_checkbox("notify_about_solutions",{master:"enable_notifications"});
+	//datetime
+	init_checkbox("datetime_replace");
+	let days = init_checkbox("datetime_days",{
+		master:"datetime_replace",
+		update:"updateDateTimeDays",
+		init:e=>e.value = background.localStorage.datetime_days,
+	});
+	//days.addEventListener('keydown',()=>setTimeout(()=>{background.updateDateTimeDays(days.value)},0));
 	
 	textarea_blacklist = document.getElementById('tag_blacklist');
 	if (background.localStorage.tag_blacklist) {

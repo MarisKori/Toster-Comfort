@@ -55,10 +55,14 @@ function clean_db(timeout_days) {
 }
 
 
+const MAX_DB_TIMEOUT = 60000;
 let saveDB_timer;
-function saveDB() {
+let db_saved_called;
+function saveDB(no_pause) {
+	let now = (new Date()).getTime();
+	db_saved_called = db_saved_called || now;
 	if (saveDB_timer !== undefined) clearTimeout(saveDB_timer);
-	saveDB_timer = setTimeout(()=>{
+	function saveDB_Now() {
 		for(let i=0;i<db_clean_steps.length;i++) {
 			clean_db(db_clean_steps[i]);
 			try {
@@ -68,7 +72,11 @@ function saveDB() {
 				console.log("Can't save DB");
 			}
 		}
-	},15000);
+		db_saved_called = undefined;
+		//console.log('DB_SAVED!');
+	}
+	if ((now - db_saved_called > MAX_DB_TIMEOUT)||no_pause) saveDB_Now();
+	else saveDB_timer = setTimeout(saveDB_Now,15000);
 }
 
 if (localStorage.cut_karma === undefined) localStorage.cut_karma = 1;
@@ -321,7 +329,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	} else if (request.type == "getOptions") {
 		let options = {};
 		TOSTER_OPTIONS.forEach((opt)=>{
-			options[opt] = parseInt(localStorage[opt]);
+			options[opt] = parseFloat(localStorage[opt]) || 0;
 		});
 		sendResponse(options);
 	} else if (request.type == "getOptionsHabr") {
@@ -336,25 +344,30 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	} else if (request.type == "getNotifications") {
 		let now = (new Date()).getTime();
 		if (now - notifications_pause < 30000) { //Выдерживаем паузу.
+			console.log('На паузе',now);
 			sendResponse({}); //Но не обнуляем
 			return;
 		}
 		if (now - tm_browser_load < 60000) { //После загрузки расширения не паникуем, не спамим, молчим.
 			arr_notifications = {}; //Сливаем все уведомления в трубу.
+			console.log('В трубу',now);
 		}
 		
 		getNotifications_last_time = now;
 		for(q_id in arr_notifications) { //Чистим от старых
 			let item = arr_notifications[q_id];
 			if (now - item.tm > 40000) {
+				console.log('Удаляем по таймауту',now,arr_notifications[q_id]);
 				delete arr_notifications[q_id];
 			}
 		}
+		console.log('Отправляем уведомления:',Object.keys(arr_notifications).length);
 		sendResponse(arr_notifications);
 		arr_notifications = {};
 	} else if (request.type == "disableNotifications") {
 		localStorage.enable_notifications = 0;
 	} else if (request.type == "tabIsActive") {
+		console.log('Активная вкладка! Продеваем паузу');
 		notifications_pause = (new Date()).getTime();
 	} else if (request.type == "updateIconNum") {
 		chrome.browserAction.setBadgeText({text:""+request.cnt});
@@ -376,6 +389,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		}
 		question.ut = (new Date()).getTime();
 		sendResponse(!!question.sub);
+		saveDB();
 	} else if (request.type == "directQuestionUpdate") {
 		if (!request.nickname || !request.q_id) return;
 		let q = db.question[request.q_id];
@@ -397,13 +411,14 @@ let TOSTER_OPTIONS = [
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
 	'make_dark', 'enable_notifications', 'notify_if_inactive',
 	//'always_notify_my_questions', 'notify_about_likes', 'notify_about_solutions',
+	'datetime_replace', 'datetime_days',
 ];
 
 let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.always_notify_my_questions === undefined) { //last added option
+if (localStorage.datetime_replace === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -425,6 +440,8 @@ if (localStorage.always_notify_my_questions === undefined) { //last added option
 	if (localStorage.always_notify_my_questions === undefined) localStorage.always_notify_my_questions=0;
 	if (localStorage.notify_about_likes === undefined) localStorage.notify_about_likes=0;
 	if (localStorage.notify_about_solutions === undefined) localStorage.notify_about_solutions=0;
+	if (localStorage.datetime_replace === undefined) localStorage.datetime_replace=0;
+	if (localStorage.datetime_days === undefined) localStorage.datetime_days=0;
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
@@ -533,8 +550,10 @@ function updateNotificationOptions() {
 	if (notifications_timer !== undefined) {
 		clearInterval(notifications_timer);
 		notifications_timer = undefined;
+		//console.log('notifications disabled');
 	}
 	if (localStorage.enable_notifications == 1) {
+		//console.log('notifications enabled');
 		notifications_timer = setInterval(()=>{
 			//let now = (new Date()).getTime();
 			//if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
@@ -573,10 +592,11 @@ function updateNotificationOptions() {
 				let end = xhr.response.indexOf('</section>',start);
 				if (start === -1 || end === -1) return console.log('Ошибка парсинга трекера уведомлений');
 				let html = xhr.response.substring(start,end);
-				let arr_notes = html.match(/toster\.ru\/\q\/\d+\?e=.*/g); //Уведомления
+				let arr_notes = html.match(/(\s*)<a href="https:\/\/toster\.ru\/\q\/\d+\?e=.*/g); //Уведомления
+				//console.log('Уведомлений:',arr_notes && arr_notes.length);
 				if (arr_notes) arr_notes.forEach(s=>{
 					let m = s.match(/(\s*)<a href="https:\/\/toster\.ru\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
-					if (!m) return;
+					if (!m) return console.log('Не удалось разобрать',s);
 					let spaces = m[1];
 					let q_id=m[2]-0;
 					let e=m[3]-0;
@@ -586,22 +606,22 @@ function updateNotificationOptions() {
 					else if (what=='ответ') {
 						//А вот это совсем дикость и не правильно. Говнокод, чё.
 						//Мы будем решать, что за тип уведомления, на основе (внимание!) количества пробелов!
-						//Если пробелов 8, то это обычный ответ.
+						//Если пробелов 9, то это обычный ответ.
 						//Если пробелов 16, то это отметка о том, что ответ является решением.
-						if (spaces.length==8) {
+						if (spaces.length==9) {
 							what='Новый '+what;
-						} else if(sapces.length==16) {
+						} else if(spaces.length==16) {
 							if (localStorage.notify_about_solutions) what='Выбрано решение';
 							else return; //ignore solutions
 						} else what='Ответ? (debug:'+spaces.length+')';
 					}
 					else if (what=='ваш ответ') {
-						//Если пробелов 8, то это обычный лайк ответа.
+						//Если пробелов 9, то это обычный лайк ответа.
 						//Если пробелов 16, то это отметка о том, что ответ является решением.
-						if (spaces.length==8) {
+						if (spaces.length==9) {
 							if (localStorage.notify_about_likes) what='Лайк';
 							else return; //ignore likes
-						} else if(sapces.length==16) {
+						} else if(spaces.length==16) {
 							if (localStorage.notify_about_solutions) what='Выбрано решение';
 							else return; //ignore solutions
 						} else what='Ваш ответ? (debug:'+spaces.length+')';
@@ -611,6 +631,7 @@ function updateNotificationOptions() {
 					}
 					else what='Что-то новое ('+what+')';
 					let q = db.question[q_id];
+					//console.log('Разобрали:',spaces.length,q_id,e,anchor,what,q);
 					if (!q) {
 						analyzeQuestion(q_id, now);
 						q = db.question[q_id];
@@ -625,6 +646,7 @@ function updateNotificationOptions() {
 									q_id:q_id,
 									title:q.t,
 								};
+								//console.log('Новое уведомление:',notif);
 								arr_notifications[q_id]=notif;
 							}
 							notif.e = e;
@@ -723,3 +745,10 @@ const habr_css_fix_lines = `
 }
 `;
 
+//----------- daytime ---------
+
+function updateDateTimeDays(val) { //callback function from options
+	let temp = parseFloat(val);
+	if (temp !== temp) temp = 0;
+	localStorage.datetime_days = temp;
+}

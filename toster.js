@@ -537,7 +537,18 @@ function parse_opt() {
 		arr_on_options_callback.forEach(fn=>fn());
 		is_options_loaded = true;
 		//Manage notifications
-		if (options.enable_notifications) initNotifications();
+		if (options.enable_notifications == 1) initNotifications();
+		if (options.datetime_replace == 1) {
+			let now = (new Date()).getTime();
+			let t = document.getElementsByTagName('time');
+			for(let i=0;i<t.length;i++) {
+				let title = t[i].title;
+				let datetime = t[i].dateTime;
+				if (datetime && now - (new Date(datetime)).getTime() > options.datetime_days * 24 * 60 * 60000) {
+					if (title && title.indexOf('Дата публикации: ') > -1) t[i].innerHTML = title.substr(17);
+				}
+			}
+		}
 	});
 }
 
