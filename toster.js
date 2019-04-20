@@ -1,13 +1,17 @@
 
-//remove elements from array by value
-function removeA(arr) {
-    var what, a = arguments, L = a.length, ax;
-    while (L > 1 && arr.length) {
-        what = a[--L];
-        while ((ax= arr.indexOf(what)) !== -1) {
-            arr.splice(ax, 1);
-        }
-    }
+function createElement(tag,clas) {
+	let e = document.createElement(tag);
+	e.className = clas;
+	return e;
+}
+
+//remove elements from array of objects by id
+function removeA(arr,id) {
+	for(let i=arr.length-1;i>=0;i--){
+		if (arr[i].id == id) {
+			arr.splice(i, 1);
+		}
+	}
     return arr;
 }
 
@@ -29,8 +33,8 @@ function user_html(user,no_name) {
 	//stats & questions
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
-		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Вопросов: '+user.cnt_q+'" style="font-size:13px;font-weight:normal"><font color='+cnt_q_color+'>'+user.cnt_q
-			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a+'" style="font-size:13px;font-weight:normal">'+user.cnt_a+'</a>'
+		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
+			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a+'" class="norma">'+user.cnt_a+'</a>'
 			+' &nbsp;<font color=#65c178 style="font-size:13px;" title="Решений: '+user.cnt_s+'%">'+user.cnt_s+'%</font>'
 			+' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>';
 	} else user_html_result = false;
@@ -42,10 +46,17 @@ function user_html(user,no_name) {
 				+user.nickname+'/comments/" target=_blank style="font-size:13px" title="Карма пользователя на Хабре"><b>'
 				+ (user.karma < 0 ? '<font color=red>' : '<font color=#6c8d00>+')
 				+ user.karma + '</font></b></a>';
-		else
-			html += ' &nbsp;'+karma_word
-				+ '<span style="font-size:13px;color:#898D92" title="Статус пользователя на Хабре">'
-				+ user.karma + '</span>';
+		else {
+			let k = user.karma === 'r' ? 'read-only' : (user.karma === 'n' ? 'не зарегистр.' : user.karma);
+			if (k === 'read-only')
+				html += ' &nbsp;'+karma_word+'<a href="https://habr.com/users/'
+					+user.nickname+'/" target=_blank style="font-size:13px;color:#898D92;font-weight:normal" title="Статус пользователя на Хабре">'
+					+ k + '</font></a>';
+			else
+				html += ' &nbsp;'+karma_word
+					+ '<span style="font-size:13px;color:#898D92" title="Статус пользователя на Хабре">'
+					+ k + '</span>';
+		}
 		if (user.stat_pub || user.stat_comment) {
 			html += '<span title="Публикаций/комментариев на Хабре" class="show_habr" style="font-size:13px;color:#898D92;'
 				+ (OPTIONS.show_habr == 1?'':'display:none')+'"> '
@@ -59,7 +70,7 @@ function user_html(user,no_name) {
 
 let qdb = {} // q_id => user
 let elem = []; // {e:elem, id:q_id}
-let request_questions = []; // [q_id, q_id, ... ]
+let request_questions = []; // [{id:123}, {id:234,v:5}, ... ]
 let elem_top_24 = []; // {e:elem, }
 
 function makeTags(tags) {
@@ -115,26 +126,43 @@ function update_questions(on_success, on_fail) {
 					q.tc_done = true;
 					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
 					hideElementClever(parent)
-					return;
+					//return;
 				}
 			}
 			const rec = qdb[q.id];
-			if (!rec) return (success = false);
-			if (rec.hide) {
+			if (!rec) {
+				if (!q.tc_done) success = false;
+				return;
+			}
+			if (rec.hide && !q.tc_done) {
 				q.tc_done = true;
 				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
 				hideElementClever(parent);
-				return;
+				//return;
 			}
 			let user = rec.u;
 			let html = user_html(user);
-			if (html) q.e.innerHTML = html;
+			if (html) {
+				q.e.innerHTML = html;
+			}
 			if (user_html_result) {
+				if (OPTIONS.show_blue_circle && (rec.q.sub || rec.q.sb)) { //html+='<span class="dot"></span>';
+					let q_wrap = q.e.parentNode.parentNode;
+					if (q_wrap) {
+						let q_title = q_wrap.querySelector('.question__title');
+						if (q_title) {
+							let dot = q_title.querySelector('.dot_sub') || q_title.querySelector('.dot_sb');
+							if (!dot) {
+								if (rec.q.sub) q_title.appendChild(createElement('span','dot_sub'));
+								else q_title.appendChild(createElement('span','dot_sb'));
+							}
+						}
+					}
+				}
 				removeA(request_questions, q.id);
 				q.tc_done = true;
-				//removeA(elem, q);
 			}
-			else success = false;
+			else if (!q.tc_done) success = false;
 			//Change color
 			if (rec.color) {
 				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
@@ -199,11 +227,16 @@ function parse_questions() {
 		q = document.getElementsByClassName('question__complexity');
 		for(let i=0;i<q.length;i++) {
 			q[i].innerHTML = '...';
-			let a = q[i].parentNode.parentNode.querySelector('h2 > a');
+			let container = q[i].parentNode.parentNode;
+			let a = container.querySelector('h2 > a');
+			let views_boxes = container.querySelectorAll('.question__views-count');
+			let views_box = views_boxes[views_boxes.length-1];
+			let m = views_box && views_box.innerHTML.match(/(\d+)\s*просмот/);
+			let views = m && m[1] || '0';
 			let result = /\d+/.exec(a.href);
 			if (result) {
-				elem.push({e:q[i], id:result[0]});
-				request_questions.push(result[0]);
+				elem.push({e:q[i], id:result[0], v:views});
+				request_questions.push({id:result[0],v:views});
 			}
 		}
 	}
@@ -215,7 +248,7 @@ function parse_questions() {
 			let result = /\d+/.exec(a.href);
 			if (result) {
 				elem_top_24.push({e:q[i], a:a, id:result[0]});
-				request_questions.push(result[0]);
+				request_questions.push({id:result[0]});
 			}
 		}
 	}
@@ -254,9 +287,7 @@ function update_q(on_success, on_fail) {
 					x.e.innerHTML += html;
 					x.done = true;
 				}
-				//removeA(request_questions, q.id);
 				delete request_user[x.nickname];
-				//removeA(elem_user, x);
 			}
 			else result = false;
 		});
@@ -286,12 +317,28 @@ function parse_q() {
 				let qm = location.href.match(/toster\.ru\/q\/(\d+)/);
 				let tags = document.querySelector('.tags-list');
 				let q_title = document.querySelector('.question__title');
+				let grp = document.querySelector('.buttons-group_question');
+				console.log('grp',grp.className,grp);
+				let btn = grp && grp.querySelector('.btn_subscribe');
+				console.log('btn',btn.className,btn);
 				chrome.runtime.sendMessage({
 					type: 'directQuestionUpdate',
 					nickname:nickname,
 					q_id:qm && qm[1]-0,
 					tags_html: tags && tags.outerHTML,
 					title: q_title && q_title.innerHTML.trim(),
+					sb: btn && btn.className == 'btn btn_subscribe btn_active',
+				});
+				if (grp) grp.addEventListener('click',e=>{
+					if (e.target.className.indexOf('btn_subscribe') === -1) return;
+					btn = grp.querySelector('.btn_subscribe');
+					if (!btn) return;
+					chrome.runtime.sendMessage({
+						type: 'directQuestionUpdate',
+						nickname:nickname,
+						q_id:qm && qm[1]-0,
+						sb: btn && btn.className == 'btn btn_subscribe', //всё наоборот
+					});
 				});
 			}
 		}
@@ -386,7 +433,34 @@ function listenOnOptions(fn) {
 	else arr_on_options_callback.push(fn);
 }
 
-function updateNotifications() {
+String.prototype.fastHashCode = function() {
+	if (this.length === 0) return 0;
+	let hash = 0;
+	for (let i = 0; i < this.length; i++) {
+		hash = ((hash<<5)-hash)+this.charCodeAt(i);
+		hash = hash & hash; //32bit
+	}
+	return hash;
+}
+
+let aside_timer;
+function updateAside(data) {
+	if (aside_timer) {
+		clearTimeout(aside_timer);
+		aside_timer = undefined;
+	}
+	if (aside_mouseover) { //нельзя менять контент прямо под мышью.
+		aside_timer = setTimeout(e=>{updateAside(data)},500);
+		return;
+	}
+	let ul = document.querySelector(".events-list_navbar");
+	//if (!ul) return;
+	ul.innerHTML = data.html;
+	aside_hash = data.hash;
+	//console.log('Апдейтим уведомления:',aside_hash,data.html.length,ul.innerHTML.length,data.html);
+}
+
+function updateNotifications(is_first_time) {
 	try {
 		if (OPTIONS.notify_if_inactive&&
 			(document.hidden===true
@@ -403,12 +477,45 @@ function updateNotifications() {
 		}, function(arr) {
 			for (q_id in arr) {
 				let item = arr[q_id];
+				if (q_id == 1) { //Не уведомление, а просто инфа о боковой панели
+					if (is_first_time) continue;
+					if (aside_hash != item.hash) {
+						//console.log('Несовпадение хеша:',item.hash,aside_hash);
+						aside_hash = item.hash;
+						chrome.runtime.sendMessage({type:'getAside'},updateAside);
+					}
+					continue;
+				}
 				let n = new Notification(item.w, {body: item.title, tag:item.title,
 					icon:'https://habrastorage.org/r/w120/files/c99/6d8/5e7/c996d85e75e64ff4b6624d2e3f694654.jpg'});
 				n.onclick = function(){
 					window.focus();
 					n.close();
-					window.location.href = "https://toster.ru/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
+					if (item.q_id) {
+						let url = item.url;
+						if (!url) {
+							if (item.anchor) url = "https://toster.ru/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
+							else url = "https://toster.ru/q/"+item.q_id;
+						}
+						window.location.href = url;
+					}
+					if (item.is_alert) {
+						let al = document.querySelector('.alert');
+						if (!al) {
+							let notices = document.querySelector('.notices-container');
+							if (notices) {
+								let page = document.querySelector('.page');
+								if (!page) return;
+								notices = document.createElement("DIV");
+								notices.className = 'flash-notices';
+								page.insertBefore(notices, page.childNodes[0]);
+							}
+							al = document.createElement("DIV");
+							al.className = 'alert alert_info';
+							notices.appendChild(al);
+						}
+						al.innerText = item.title;
+					}
 				}
 			}
 		});
@@ -460,7 +567,8 @@ function addListenButton() {
 	
 }
 
-
+let aside_hash = 0;
+let aside_mouseover;
 function initNotifications() {
 	if (!window.Notification || !Notification.permission) return; //not supported
 	if (Notification.permission == "denied") return;
@@ -475,21 +583,27 @@ function initNotifications() {
 		return;
 	}
 	setInterval(updateNotifications, 3000);
-	updateNotifications();
+	updateNotifications(true);
 	//add subscribe button
-	addListenButton();
+	if (!OPTIONS.notify_all) addListenButton();
 	//Пересчет уведомлений для иконки
 	let ul = document.querySelector(".events-list_navbar");
 	if (ul) {
+		ul.addEventListener('mouseover',e=>aside_mouseover=1);
+		ul.addEventListener('mouseout',e=>aside_mouseover=0);
 		let counter = ul.querySelector(".events-list__item_more");
 		let m, cnt;
 		if (counter && (m = counter.innerHTML.match(/<span>(\d+)<\/span>/))) {
 			cnt = m[1] - 0;
 		} else {
-			let lis = ul.querySelectorAll(".events-list__item");
+			let lis = ul.querySelectorAll(".events-list__item a");
 			cnt = lis.length;
+			if (cnt && lis[cnt-1].href == "https://toster.ru/my/tracker") cnt--;
 		}
-		chrome.runtime.sendMessage({type: "updateIconNum", cnt:cnt});
+		aside_html = ul.innerHTML.replace(' style="overflow-wrap: break-word;"','');
+		aside_hash = aside_html.fastHashCode();
+		//console.log('Хеш при загрузке:',aside_hash,aside_html.length,aside_html);
+		chrome.runtime.sendMessage({type: "updateIconNum", cnt:cnt, hash:aside_hash, html:aside_html});
 	}
 }
 
@@ -552,9 +666,35 @@ function parse_opt() {
 	});
 }
 
+function addCustomCSS() {
+	let style = document.createElement('style');
+	style.innerHTML = `
+.dot_sub {
+  height: 14px;
+  width: 14px;
+  background-color: #44f;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot_sb {
+  height: 14px;
+  width: 14px;
+  background-color: #aaf;
+  border-radius: 50%;
+  display: inline-block;
+}
+.norma {
+	font-size:13px;
+	font-weight:normal;
+}
+`;
+	let ref = document.querySelector('script');
+	ref.parentNode.insertBefore(style, ref);
+}
 
 document.addEventListener('DOMContentLoaded', function () {
 	parse_opt();
+	addCustomCSS();
 	if (location.href.indexOf('https://toster.ru/q/') > -1 || location.href.indexOf('https://toster.ru/answer') > -1) {
 		parse_q();
 	}

@@ -50,11 +50,15 @@ var TOKEN_FN = {
 	'||':s=>{let b = s.pop().token; return new Token(s.pop().token || b)},
 	//custom functions
 	'tag':s=>new Token(outer_tag(s.pop().token)), // outer_tag is external function.
-	'contains':s=>{let needle = s.pop().token; let haystack = s.pop().token; return new Token(haystack.indexOf(needle)>-1)},
+	'contains':s=>{
+		let needle = s.pop().token.toLowerCase();
+		let haystack = s.pop().token.toLowerCase();
+		return new Token(haystack.indexOf(needle)>-1)
+	},
 	'containsWord':s=>{
-		let needle = s.pop().token;
-		let haystack = s.pop().token;
-		needle = '\\b' + needle.replace(/ /g, '\\s+') + '\\b';
+		let needle = s.pop().token.toLowerCase();
+		let haystack = s.pop().token.toLowerCase();
+		needle = '(?<=[^а-яА-ЯёЁ\\w]|^)' + needle.replace(/\s+/g, '\\s+') + '(?=[^а-яА-ЯёЁ\\w]|$)'; //.replace(/\\/g,'\\\\')
 		return new Token(haystack.match(needle)!==null);
 	},
 }

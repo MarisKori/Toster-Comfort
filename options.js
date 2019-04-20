@@ -7,23 +7,26 @@ function init_checkbox(name,options) {
 	e.addEventListener("change", (e) => {
 		background.localStorage[name] = e.target.checked?1:0;
 		if (options && options.update) background[options.update](e.target.value);
+		if (options && options.update_fn) options.update_fn(); //e.target?
 	});
 	if (!options) return e;
-	if (options.master) { //Более главная галка должна быть активна, чтобы эта имела смысл
-		let master = document.getElementById(options.master);
+	if (options.master || options.antimaster) { //Более главная галка должна быть активна, чтобы эта имела смысл
+		let master = options.master && document.getElementById(options.master);
+		let antimaster = options.antimaster && document.getElementById(options.antimaster);
 		let disabled = false;
-		function updateColor() { //update color if element is disabled or not
-			if (e.disabled == disabled) return e;
-			disabled = e.disabled;
-			e.parentNode.className = disabled ? "disabled" : "";
+		function updateCheckbox() {
+			let status_disabled = master && (!master.checked) // || master.disabled)
+				|| antimaster && antimaster.checked; // && !antimaster.disabled;
+			if (status_disabled == disabled) return;
+			e.disabled = status_disabled;
+			disabled = status_disabled;
+			e.parentNode.className = disabled ? "disabled" : ""; //update color if element is disabled or not
 		}
 		if (!master.checked || master.disabled) e.disabled = true;
-		updateColor();
-		master.addEventListener("change", (m) => {
-			if(m.target.checked)e.disabled=false;
-			else e.disabled=true;
-			updateColor();
-		});
+		updateCheckbox();
+		setTimeout(updateCheckbox,0);
+		if (master) master.addEventListener("change", updateCheckbox);
+		if (antimaster) antimaster.addEventListener("change", updateCheckbox);
 	}
 	return e;
 }
@@ -38,7 +41,8 @@ function update_options() {
 	if (textarea_conditions.value != condlist) {
 		condlist = textarea_conditions.value;
 		background.localStorage.all_conditions = condlist;
-		background.update_conditions();
+		let notify_cnt = background.update_conditions();
+		checkNotifyCnt(notify_cnt);
 	}
 }
 
@@ -59,6 +63,22 @@ function onLazyUpdate() {
 	}
 }
 
+let notify_error = false;
+let save_notify_cnt;
+function checkNotifyCnt(cnt) {
+	if (cnt === undefined) cnt = save_notify_cnt;
+	if (cnt === undefined) return;
+	save_notify_cnt = cnt;
+	let e = document.getElementById('enable_notify_action');
+	let error = !e.disabled && e.checked && !cnt;
+	if (error != notify_error) {
+		notify_error = error;
+		let err = document.getElementById('na_error');
+		err.innerHTML = error ? 'У вас нет ни одного фильтра с действием notify.' : '&nbsp;';
+	}
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
 	const version = document.getElementById('current_version');
@@ -78,13 +98,23 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");
-	init_checkbox("make_dark");
+	init_checkbox("show_blue_circle");
 	init_checkbox("enable_notifications",{update:'updateNotificationOptions'});
 	enable_notifications = document.getElementById('enable_notifications');
+	init_checkbox("notify_all",{master:"enable_notifications"});
 	init_checkbox("notify_if_inactive",{master:"enable_notifications"});
-	init_checkbox("always_notify_my_questions",{master:"enable_notifications"});
-	init_checkbox("notify_about_likes",{master:"enable_notifications"});
-	init_checkbox("notify_about_solutions",{master:"enable_notifications"});
+	init_checkbox("always_notify_my_questions",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_answer_comment",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_about_likes",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_about_solutions",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_mention",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_expert",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_moderator",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_changes",{master:"enable_notifications",antimaster:"notify_all"});
+	init_checkbox("notify_my_feed",{master:"enable_notifications",antimaster:"enable_notify_action"});
+	init_checkbox("enable_notify_action",{master:"enable_notifications",antimaster:"notify_my_feed",update_fn:e=>checkNotifyCnt()});
+	setTimeout(()=>checkNotifyCnt(background.getDbCondLength()),300);
+
 	//datetime
 	init_checkbox("datetime_replace");
 	let days = init_checkbox("datetime_days",{
@@ -111,6 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	textarea_conditions.addEventListener('keydown',()=>setTimeout(checkConditionSyntax,0));
 	textarea_conditions.addEventListener('input',checkConditionSyntax); //for cut/paste and moves of text by mouse
 	
+	//makeLined(textarea_conditions);
 
 	//Habr
 	init_checkbox("move_posttime_down");

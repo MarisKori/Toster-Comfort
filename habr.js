@@ -44,7 +44,10 @@ function hideCommentFormByDefault() {
 		remove_fn();
 		comment_div.className = OPENED; //Если кликнули по надписи, то нужно также поменять её текст.
 	}
-	document.querySelectorAll('.comment__footer-link').forEach(e=>e.addEventListener('click',remove_fn));
+	//document.querySelectorAll('.comment__footer-link').forEach(e=>e.addEventListener('click',remove_fn));
+	document.addEventListener('click', e => {
+		if (e.target.matches('.comment__footer-link')) remove_fn(e);
+	});
 	comment_text.addEventListener('click',onclick);
 	//Меняем стиль текста-кнопки и скрываем редактор
 	comment_div.className = CLOSED;
