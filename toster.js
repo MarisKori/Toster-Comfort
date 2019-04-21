@@ -224,10 +224,21 @@ function update_questions(on_success, on_fail) {
 function parse_questions() {
 	let q;
 	if (!is_current_question) {
-		q = document.getElementsByClassName('question__complexity');
+		//content-list__item - li
+		//question question_short - такое
+		//question__content
+		//question__content_fluid
+		//question__tags
+		q = document.getElementsByClassName('question__tags');
 		for(let i=0;i<q.length;i++) {
-			q[i].innerHTML = '...';
-			let container = q[i].parentNode.parentNode;
+			let complexity = q[i].querySelector('.question__complexity');
+			if (!complexity) {
+				complexity = document.createElement('span');
+				complexity.className = 'question__complexity';
+				q[i].appendChild(complexity);
+			}
+			complexity.innerHTML = '...';
+			let container = complexity.parentNode.parentNode;
 			let a = container.querySelector('h2 > a');
 			let views_boxes = container.querySelectorAll('.question__views-count');
 			let views_box = views_boxes[views_boxes.length-1];
@@ -235,7 +246,7 @@ function parse_questions() {
 			let views = m && m[1] || '0';
 			let result = /\d+/.exec(a.href);
 			if (result) {
-				elem.push({e:q[i], id:result[0], v:views});
+				elem.push({e:complexity, id:result[0], v:views});
 				request_questions.push({id:result[0],v:views});
 			}
 		}
@@ -318,9 +329,9 @@ function parse_q() {
 				let tags = document.querySelector('.tags-list');
 				let q_title = document.querySelector('.question__title');
 				let grp = document.querySelector('.buttons-group_question');
-				console.log('grp',grp.className,grp);
+				//console.log('grp',grp.className,grp);
 				let btn = grp && grp.querySelector('.btn_subscribe');
-				console.log('btn',btn.className,btn);
+				//console.log('btn',btn.className,btn);
 				chrome.runtime.sendMessage({
 					type: 'directQuestionUpdate',
 					nickname:nickname,

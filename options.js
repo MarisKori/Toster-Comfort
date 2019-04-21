@@ -99,7 +99,13 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");
 	init_checkbox("show_blue_circle");
-	init_checkbox("enable_notifications",{update:'updateNotificationOptions'});
+	init_checkbox("enable_notifications",{update:'updateNotificationOptions',update_fn:e=>{
+		setTimeout(()=>{
+			let notify_cnt = background.update_conditions();
+			checkNotifyCnt(notify_cnt);
+			cond_error.innerHTML = background.cond_update_error_string;
+		},0);
+	}});
 	enable_notifications = document.getElementById('enable_notifications');
 	init_checkbox("notify_all",{master:"enable_notifications"});
 	init_checkbox("notify_if_inactive",{master:"enable_notifications"});
@@ -112,7 +118,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("notify_moderator",{master:"enable_notifications",antimaster:"notify_all"});
 	init_checkbox("notify_changes",{master:"enable_notifications",antimaster:"notify_all"});
 	init_checkbox("notify_my_feed",{master:"enable_notifications",antimaster:"enable_notify_action"});
-	init_checkbox("enable_notify_action",{master:"enable_notifications",antimaster:"notify_my_feed",update_fn:e=>checkNotifyCnt()});
+	init_checkbox("enable_notify_action",{master:"enable_notifications",antimaster:"notify_my_feed",update_fn:e=>{
+		let notify_cnt = background.update_conditions();
+		checkNotifyCnt(notify_cnt);
+		cond_error.innerHTML = background.cond_update_error_string;
+	}});
 	setTimeout(()=>checkNotifyCnt(background.getDbCondLength()),300);
 
 	//datetime

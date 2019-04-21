@@ -109,7 +109,7 @@ function MakeTokens(str) {
 	}
 	for(let i=0;i<str.length;i++){
 		let c = str[i];
-		if (c == " ") {
+		if (c == " " && current_type != TYPE_STRING) {
 			if (current_token !== '') {
 				AddToken(); //tokens.push(new Token());
 			}

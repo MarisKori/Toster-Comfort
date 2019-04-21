@@ -550,7 +550,6 @@ function getDbCondLength() {
 function update_conditions() {
 	cond_update_error_string = '';
 	db_conditions = [];
-	db_conditions_notify = [];
 	db_conditions_hide_cnt = 0;
 	db_conditions_notify_cnt = 0;
 	const lines = localStorage.all_conditions.split("\n");
@@ -592,6 +591,10 @@ function update_conditions() {
 		checkCondition(rule_cond_str, example_environment);
 		if (condition_error_string && !cond_update_error_string) cond_update_error_string = 'Line #'+(i+1)+': '+condition_error_string;
 	}
+	if (!cond_update_error_string && db_conditions_notify_cnt && localStorage.enable_notify_action != 1) {
+		cond_update_error_string = 'Действите notify отключено в настройках выше.';
+	}
+	if (!cond_update_error_string) cond_update_error_string = '&nbsp;';
 	return db_conditions_notify_cnt;
 }
 if (localStorage.all_conditions) setTimeout(update_conditions,0); //because eval.lite is not defined yet
@@ -635,6 +638,7 @@ function updateNitificationsMyFeed(now) {
 		function checkQuestion(q_id) {
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
+			if (save_current_user && save_current_user == q.user_id) return;
 			if (db_conditions_hide_cnt) { //есть правила
 				if (q.is_pending) return;
 				let user = q.user_id && db.user[q.user_id];
@@ -701,9 +705,16 @@ function updateNitificationsFilterAll(now) {
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
 			if (q.is_pending) return;
+			if (save_current_user && save_current_user == q.user_id) return;
 			let user = q.user_id && db.user[q.user_id];
 			if (!user || user.karma_pending || user.solutions_pending) return;
 			//Check rules
+			let tags = q.tags;
+			if (tags) {
+				for(let k in tags) {
+					if (db_tags_blacklist[tags[k].toLowerCase()]) return;
+				}
+			}
 			let current_data = {
 				q:q,
 				u:user,
@@ -778,6 +789,7 @@ let notifications_timer;
 let notifications_pause = 0; //Метка активации паузы. 30 секунд нельзя спамить.
 const tm_browser_load = (new Date()).getTime();
 let getNotifications_last_time = 0; //Последнее обращение страницы.
+let save_current_user = ''; //Текущий пользователь, или прошлый.
 //let start_page = 10;
 function updateNotificationOptions() {
 	if (notifications_timer !== undefined) {
@@ -817,9 +829,11 @@ function updateNotificationOptions() {
 				}
 				//Текущий пользователь
 				let current_user;
-				if (localStorage.always_notify_my_questions == 1) {
-					let m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/toster\.ru\/user\/([^"]+)">/);
-					if (m) current_user=m[1];
+				//if (localStorage.always_notify_my_questions == 1) {
+				m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/toster\.ru\/user\/([^"]+)">/);
+				if (m) {
+					current_user=m[1];
+					save_current_user = current_user;
 				}
 				//Считаем кол-во уведомлений
 				if (localStorage.enable_notifications == 1) {
