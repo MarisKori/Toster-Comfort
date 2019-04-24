@@ -699,8 +699,7 @@ function addCustomCSS() {
 	font-weight:normal;
 }
 `;
-	let ref = document.querySelector('script');
-	ref.parentNode.insertBefore(style, ref);
+	document.head.appendChild(style);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -711,5 +710,20 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	if (!location.href.match(/^https:\/\/toster\.ru\/user\/.*\/questions/)) listenOnOptions(parse_questions);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

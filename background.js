@@ -23,7 +23,6 @@ function getURL(url,callback, on_fail) {
 }
 
 const db_clean_steps = [7, 3, 2, 1, 0.5, 0.2];
-
 function clean_db(timeout_days) {
 	const timeout = timeout_days *24*60*60*1000;
 	//remove pending status
@@ -63,6 +62,7 @@ function saveDB(no_pause) {
 	db_saved_called = db_saved_called || now;
 	if (saveDB_timer !== undefined) clearTimeout(saveDB_timer);
 	function saveDB_Now() {
+		//let check1 = performance.now();
 		for(let i=0;i<db_clean_steps.length;i++) {
 			clean_db(db_clean_steps[i]);
 			try {
@@ -73,7 +73,8 @@ function saveDB(no_pause) {
 			}
 		}
 		db_saved_called = undefined;
-		//console.log('DB_SAVED!');
+		//let check2 = performance.now();
+		//console.log('DB_SAVED!',(check2-check1)+'мс');
 	}
 	if ((now - db_saved_called > MAX_DB_TIMEOUT)||no_pause) saveDB_Now();
 	else saveDB_timer = setTimeout(saveDB_Now,15000);
@@ -106,6 +107,7 @@ function updateUser(nickname,timeout) {
 			while ((a = r.exec(text)) !== null) {
 				if (a[1] !== "0") sum++; //count questions with at least 1 answer
 			}
+			freeRegExp();
 			a = text.match(/icon_svg icon_check/g);
 			let cnt = a && a.length || 0;
 			if (!sum) user.solutions = '0';
@@ -125,7 +127,7 @@ function updateUser(nickname,timeout) {
 		saveDB();
 		getURL('https://habr.com/users/'+nickname+'/',(text)=>{
 			delete user.karma_pending;
-			let a = /<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/.exec(text);
+			let a = text.match(/<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/);
 			if (a) {
 				user.karma = a[1].replace(',','.').replace('–','-');
 				let karma = parseFloat(user.karma);
@@ -137,11 +139,11 @@ function updateUser(nickname,timeout) {
 				user.karma = "read-only";
 				//console.log('Karma not found, user:',nickname);
 			}
-			a = /<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Публикации: (\d+)">/.exec(text);
+			a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Публикации: (\d+)">/);
 			if (a) {
 				user.stat_pub = parseInt(a[1]);
 			}
-			a = /<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Комментарии: (\d+)">/.exec(text);
+			a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Комментарии: (\d+)">/);
 			if (a) {
 				user.stat_comment = parseInt(a[1]);
 			}
@@ -154,9 +156,10 @@ function parseTags(txt) {
 	let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
 	let a = r.exec(txt);
 	while (a) {
-		tags[a[1]] = a[2];
+		tags[a[1].split('').join('')] = a[2].split('').join('');
 		a = r.exec(txt);
 	}
+	freeRegExp();
 	return tags;
 }
 
@@ -172,7 +175,7 @@ function analyzeQuestion(question_id, now) {
 		if (index_title > -1) {
 			let index_title2 = text.indexOf("</h1>\n",index_title);
 			let txt = text.substring(index_title + index_title_str.length + 1, index_title2).trim();
-			if (txt) q.t = txt; //title!
+			if (txt) q.t = txt.split('').join(''); //title!
 		}
 		//get user name
 		let index_name = text.indexOf('<meta itemprop="name" content="');
@@ -184,11 +187,12 @@ function analyzeQuestion(question_id, now) {
 			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
 			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
+				user_nickname=user_nickname.split('').join('');
 				delete q.is_pending;
 				q.user_id = user_nickname;
 				let user = db.user[user_nickname];
 				if (!user) user = db.user[user_nickname] = {};
-				user.name = user_name;
+				user.name = user_name.split('').join('');
 				user.nickname = user_nickname;
 				updateUser(user_nickname);
 			}
@@ -601,6 +605,10 @@ if (localStorage.all_conditions) setTimeout(update_conditions,0); //because eval
 
 //---------------------Notofocations------------------------
 
+function freeRegExp(){
+  ///\s*/g.exec("");
+}
+
 let notify_feed_arr = {}; //Массив с id вопросов, по которым уже было уведомление
 function clearNotifyFeedArr(now) {
 	Object.keys(notify_feed_arr).forEach(id=>{
@@ -671,8 +679,8 @@ function updateNitificationsMyFeed(now) {
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
 			arr.push(q_id);
-			let title = m[2].trim();
-			let date = m[3].trim();
+			let title = m[2].trim().split('').join('');
+			let date = m[3].trim().split('').join('');
 			let views = m[4]-0;
 			if (getFreshTime(date) > 10) continue;
 			let q = db.question[q_id];
@@ -688,6 +696,7 @@ function updateNitificationsMyFeed(now) {
 			q.ut = now;
 			checkQuestion(q_id);
 		}
+		freeRegExp();
 		clearNotifyFeedArr(now);
 		//console.log('My feed:',arr);
 	}
@@ -740,8 +749,8 @@ function updateNitificationsFilterAll(now) {
 		let arr=[];
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
-			let title = m[2].trim();
-			let date = m[3].trim();
+			let title = m[2].trim().split('').join('');
+			let date = m[3].trim().split('').join('');
 			let views = m[4]-0;
 			arr.push({
 				id:q_id,
@@ -765,6 +774,7 @@ function updateNitificationsFilterAll(now) {
 			q.ut = now;
 			checkQuestion(q_id);
 		}
+		freeRegExp();
 		clearNotifyFeedArr(now);
 		//console.log('Новые вопросы:',arr);
 	}
@@ -879,7 +889,7 @@ function updateNotificationOptions() {
 					let renamed, noticed;
 					if (q.t != Q_title) {
 						renamed = !!q.t;
-						q.t = Q_title; //Быстрый синхронный title
+						q.t = Q_title.split('').join(''); //Быстрый синхронный title
 						saveDB();
 					}
 					let must_notify = notify_all || q.sub
@@ -928,11 +938,11 @@ function updateNotificationOptions() {
 							a.what = 'Автор принял правку';
 						} else if (message.indexOf('просит вас как эксперта ответить на вопрос') > -1) {
 							if (!must_notify && !(localStorage.notify_expert==1)) continue;
-							a.title = nickname + ' просит вас как эксперта ответить на вопрос';
+							a.title = nickname.split('').join('') + ' просит вас как эксперта ответить на вопрос';
 							a.what = 'Эксперт нужен!';
 						} else if (message.indexOf('подписался на') > -1) { //ваш вопрос
 							if (!must_notify && !(localStorage.notify_about_likes==1)) continue;
-							a.what = 'Подписка на вопрос ('+nickname+')';
+							a.what = 'Подписка на вопрос ('+nickname.split('').join('')+')';
 							//a.title = nickname + ' подписался на ваш вопрос.';
 						} else {
 							let spaces,q_id,e2,anchor,what,url;
@@ -997,7 +1007,7 @@ function updateNotificationOptions() {
 							if(!notif) {
 								notif = {
 									q_id:Q_id,
-									title:(a.title || q.t), //+ "\n" + a.date,
+									title:(a.title ? a.title.split('').join('') : q.t), //+ "\n" + a.date,
 								};
 								//console.log('Новое уведомление:',notif);
 								arr_notifications[Q_id]=notif;
@@ -1026,6 +1036,7 @@ function updateNotificationOptions() {
 						notif.tm = now; //not used
 					}
 				}
+				freeRegExp();
 			};
 			let now = (new Date()).getTime();
 			if (localStorage.notify_my_feed == 1) updateNitificationsMyFeed(now);
