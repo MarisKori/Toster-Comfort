@@ -98,7 +98,8 @@ function updateUser(nickname,timeout) {
 	if (need_update || user.solutions === undefined && !user.solutions_pending) {
 		user.solutions_pending = true;
 		saveDB();
-		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{
+		getURL('https://toster.ru/user/'+nickname+'/questions',(text1)=>{
+			let text = JSON.parse(JSON.stringify(text1));
 			delete user.solutions_pending;
 			//solutions
 			let r = /\s*(\d+)\s*<\/div>/g; //todo: very very bad, need better algorytm!
@@ -168,7 +169,9 @@ function analyzeQuestion(question_id, now) {
 	let q = {is_pending:true, ut:now};
 	db.question[question_id] = q;
 	saveDB();
-	getURL('https://toster.ru/q/' + question_id, function(text) {
+	getURL('https://toster.ru/q/' + question_id, function(text1) {
+		let text = JSON.parse(JSON.stringify(text1));
+
 		//get title
 		const index_title_str = '<h1 class="question__title" itemprop="name ">';
 		let index_title = text.indexOf(index_title_str);
@@ -182,9 +185,9 @@ function analyzeQuestion(question_id, now) {
 		if (index_name > -1) {
 			let index_name2 = text.indexOf('</span>', index_name);
 			let txt = text.substr(index_name, index_name2 - index_name);
-			let user_name = txt.match(/<meta itemprop=\"name\" content=\"([^"]*)\">/)[1];
+			let user_name = JSON.parse(JSON.stringify(txt)).match(/<meta itemprop=\"name\" content=\"([^"]*)\">/)[1];
 			//console.log('user_name',user_name);
-			let user_nickname = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
+			let user_nickname = JSON.parse(JSON.stringify(txt)).match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
 			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
 				user_nickname=user_nickname.split('').join('');
@@ -202,7 +205,7 @@ function analyzeQuestion(question_id, now) {
 		if (index_tags > -1) {
 			let index_tags2 = text.indexOf('</ul>', index_tags || 0);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
-			q.tags = parseTags(txt);
+			q.tags = parseTags(JSON.parse(JSON.stringify(txt)));
 		}
 		//check subscribtions
 		if (text.indexOf('"btn btn_subscribe btn_active"') > -1) q.sb = 1;
