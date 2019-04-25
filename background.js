@@ -1,4 +1,8 @@
 
+function clearString(str) {
+	return str.length < 13 ? str : (' ' + str).slice(1);
+}
+
 function getURL(url,callback, on_fail) {
 	//console.log('URL:',url);
 	let xhr = new XMLHttpRequest();
@@ -98,8 +102,7 @@ function updateUser(nickname,timeout) {
 	if (need_update || user.solutions === undefined && !user.solutions_pending) {
 		user.solutions_pending = true;
 		saveDB();
-		getURL('https://toster.ru/user/'+nickname+'/questions',(text1)=>{
-			let text = JSON.parse(JSON.stringify(text1));
+		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{
 			delete user.solutions_pending;
 			//solutions
 			let r = /\s*(\d+)\s*<\/div>/g; //todo: very very bad, need better algorytm!
@@ -116,9 +119,9 @@ function updateUser(nickname,timeout) {
 			//stats
 			a = text.match(/<li class="inline-list__item inline-list__item_bordered">[\s\S]*<meta itemprop="interactionCount"[\s\S]*<div class="mini-counter__count">(\d+)[\s\S]*<div class="mini-counter__count">(\d+)[\s\S]*<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
 			if (a) {
-				user.cnt_q = a[1]; //questions
-				user.cnt_a = a[2]; //answers
-				user.cnt_s = a[3]; //perc solutions
+				user.cnt_q = a[1]-0; //questions
+				user.cnt_a = a[2]-0; //answers
+				user.cnt_s = a[3]-0; //perc solutions
 			} else console.log("Stats not found, user:",nickname);
 		});
 	}
@@ -135,6 +138,9 @@ function updateUser(nickname,timeout) {
 				if (!isNaN(karma)) { // !!!
 					if (localStorage.cut_karma == 1) karma = Math.floor(karma);
 					user.karma = karma;
+				}	else {
+					console.log('Ошибка кармы:',nickname,user.karma);
+					user.karma = clearString(user.karma);
 				}
 			} else {
 				user.karma = "read-only";
@@ -148,7 +154,9 @@ function updateUser(nickname,timeout) {
 			if (a) {
 				user.stat_comment = parseInt(a[1]);
 			}
-		}, ()=>{ delete user.karma_pending; user.karma = 'не зарегистр.'; });
+		}, ()=>{ //todo: такой статус нужен лишь при ответе 404
+			delete user.karma_pending; user.karma = 'не зарегистр.';
+		});
 	}
 }
 
@@ -157,10 +165,9 @@ function parseTags(txt) {
 	let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
 	let a = r.exec(txt);
 	while (a) {
-		tags[a[1].split('').join('')] = a[2].split('').join('');
+		tags[clearString(a[1])] = clearString(a[2]);
 		a = r.exec(txt);
 	}
-	freeRegExp();
 	return tags;
 }
 
@@ -169,33 +176,33 @@ function analyzeQuestion(question_id, now) {
 	let q = {is_pending:true, ut:now};
 	db.question[question_id] = q;
 	saveDB();
-	getURL('https://toster.ru/q/' + question_id, function(text1) {
-		let text = JSON.parse(JSON.stringify(text1));
-
+	getURL('https://toster.ru/q/' + question_id, function(text) {
 		//get title
 		const index_title_str = '<h1 class="question__title" itemprop="name ">';
 		let index_title = text.indexOf(index_title_str);
 		if (index_title > -1) {
 			let index_title2 = text.indexOf("</h1>\n",index_title);
 			let txt = text.substring(index_title + index_title_str.length + 1, index_title2).trim();
-			if (txt) q.t = txt.split('').join(''); //title!
+			if (txt) q.t = clearString(txt); //title!
 		}
 		//get user name
 		let index_name = text.indexOf('<meta itemprop="name" content="');
 		if (index_name > -1) {
 			let index_name2 = text.indexOf('</span>', index_name);
 			let txt = text.substr(index_name, index_name2 - index_name);
-			let user_name = JSON.parse(JSON.stringify(txt)).match(/<meta itemprop=\"name\" content=\"([^"]*)\">/)[1];
+			let m = txt.match(/<meta itemprop=\"name\" content=\"([^"]*)\">/);
+			let user_name = m && m[1] || '???';
 			//console.log('user_name',user_name);
-			let user_nickname = JSON.parse(JSON.stringify(txt)).match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/)[1];
+			m = txt.match(/<meta itemprop=\"alternateName\" content=\"([^"]*)\">/);
+			let user_nickname = m && m[1];
 			//console.log('user_nickname',user_nickname);
 			if (user_nickname) {
-				user_nickname=user_nickname.split('').join('');
+				user_nickname=clearString(user_nickname);
 				delete q.is_pending;
 				q.user_id = user_nickname;
 				let user = db.user[user_nickname];
 				if (!user) user = db.user[user_nickname] = {};
-				user.name = user_name.split('').join('');
+				user.name = clearString(user_name);
 				user.nickname = user_nickname;
 				updateUser(user_nickname);
 			}
@@ -205,7 +212,7 @@ function analyzeQuestion(question_id, now) {
 		if (index_tags > -1) {
 			let index_tags2 = text.indexOf('</ul>', index_tags || 0);
 			let txt = text.substr(index_tags, index_tags2 - index_tags);
-			q.tags = parseTags(JSON.parse(JSON.stringify(txt)));
+			q.tags = parseTags(txt);
 		}
 		//check subscribtions
 		if (text.indexOf('"btn btn_subscribe btn_active"') > -1) q.sb = 1;
@@ -452,6 +459,7 @@ let TOSTER_OPTIONS = [
 	'make_dark', 'enable_notifications', 'notify_if_inactive',
 	//'always_notify_my_questions', 'notify_about_likes', 'notify_about_solutions',
 	'datetime_replace', 'datetime_days', 'show_blue_circle', 'notify_all',
+	'aside_right_noads', 'aside_right_hide',
 ];
 
 let HABR_OPTIONS = [
@@ -609,7 +617,7 @@ if (localStorage.all_conditions) setTimeout(update_conditions,0); //because eval
 //---------------------Notofocations------------------------
 
 function freeRegExp(){
-  ///\s*/g.exec("");
+  /\s*/g.exec("");
 }
 
 let notify_feed_arr = {}; //Массив с id вопросов, по которым уже было уведомление
@@ -682,8 +690,8 @@ function updateNitificationsMyFeed(now) {
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
 			arr.push(q_id);
-			let title = m[2].trim().split('').join('');
-			let date = m[3].trim().split('').join('');
+			let title = clearString(m[2].trim());
+			let date = m[3].trim();
 			let views = m[4]-0;
 			if (getFreshTime(date) > 10) continue;
 			let q = db.question[q_id];
@@ -752,17 +760,17 @@ function updateNitificationsFilterAll(now) {
 		let arr=[];
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
-			let title = m[2].trim().split('').join('');
-			let date = m[3].trim().split('').join('');
+			let title = clearString(m[2].trim());
+			let date = m[3].trim();
 			let views = m[4]-0;
-			arr.push({
+			/*arr.push({
 				id:q_id,
 				is_q:!!db.question[q_id],
 				title:title,
 				v:views,
-				date:date,
+				date:clearString(date),
 				q:db.question[q_id],
-			});
+			});*/
 			if (getFreshTime(date) > 10) continue;
 			let q = db.question[q_id];
 			if (!q) {
@@ -832,10 +840,10 @@ function updateNotificationOptions() {
 					let message = m[1].trim();
 					if (m = message.match(/^(.*)<a class="alert__btn_close/)) message = m[1].trim();
 					if (message && localStorage.save_global_alert != message) {
-						localStorage.save_global_alert = message;
+						localStorage.save_global_alert = clearString(message);
 						arr_notifications[1] = {
 							w: 'Объявление',
-							title: message,
+							title: clearString(message),
 							is_alert: true,
 						};
 					}
@@ -845,7 +853,7 @@ function updateNotificationOptions() {
 				//if (localStorage.always_notify_my_questions == 1) {
 				m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/toster\.ru\/user\/([^"]+)">/);
 				if (m) {
-					current_user=m[1];
+					current_user=clearString(m[1]);
 					save_current_user = current_user;
 				}
 				//Считаем кол-во уведомлений
@@ -859,7 +867,7 @@ function updateNotificationOptions() {
 						let hash = aside_notifications.fastHashCode();
 						if (hash !== events_list_navbar_hash) {
 							events_list_navbar_hash = hash;
-							events_list_navbar = aside_notifications;
+							events_list_navbar = clearString(aside_notifications);
 							//console.log('Загружен новый хеш:',hash,aside_notifications);
 						}
 						//console.log("aside",aside_notifications);
@@ -883,22 +891,23 @@ function updateNotificationOptions() {
 				let notify_all = localStorage.notify_all==1;
 				//Парсим на отдельные секции вопросов
 				let r = /<a class="question__title-link" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\s\S]*?<ul class="events-list">([\s\S]*?)<\/ul>/g;
-				while (m = r.exec(html)) {
+				while (m = r.exec(html)) { //Блок отдельного вопроса
 					let Q_id = m[1]-0;
 					let Q_title = m[2].trim(); //console.log('Title:',Q_title);
 					let ul = m[3];
 					let q = db.question[Q_id];
 					if (!q) q = analyzeQuestion(Q_id, now);
 					let renamed, noticed;
-					if (q.t != Q_title) {
+					if (q.t.replace('«','"').replace('»','"') != Q_title) {
+						//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
 						renamed = !!q.t;
-						q.t = Q_title.split('').join(''); //Быстрый синхронный title
+						q.t = clearString(Q_title); //Быстрый синхронный title
 						saveDB();
 					}
 					let must_notify = notify_all || q.sub
 						|| current_user && q.user_id == current_user && localStorage.always_notify_my_questions==1;
 					let rr = /<input type="checkbox" class="event__checkbox" data-event_id="(\d+)"\s*([^>]*)>[\s\S]*?<div class="event__title">([\S\s]*?)<div class="event__date">(.*?)<\/div>/g;
-					while (m = rr.exec(ul)) {
+					while (m = rr.exec(ul)) { //Блок отдельного уведомления
 						let e = m[1]-0;
 						let active = m[2] == 'checked';
 						if (!active) continue;
@@ -941,11 +950,11 @@ function updateNotificationOptions() {
 							a.what = 'Автор принял правку';
 						} else if (message.indexOf('просит вас как эксперта ответить на вопрос') > -1) {
 							if (!must_notify && !(localStorage.notify_expert==1)) continue;
-							a.title = nickname.split('').join('') + ' просит вас как эксперта ответить на вопрос';
+							a.title = nickname + ' просит вас как эксперта ответить на вопрос';
 							a.what = 'Эксперт нужен!';
 						} else if (message.indexOf('подписался на') > -1) { //ваш вопрос
 							if (!must_notify && !(localStorage.notify_about_likes==1)) continue;
-							a.what = 'Подписка на вопрос ('+nickname.split('').join('')+')';
+							a.what = 'Подписка на вопрос ('+nickname+')';
 							//a.title = nickname + ' подписался на ваш вопрос.';
 						} else {
 							let spaces,q_id,e2,anchor,what,url;
@@ -1010,15 +1019,15 @@ function updateNotificationOptions() {
 							if(!notif) {
 								notif = {
 									q_id:Q_id,
-									title:(a.title ? a.title.split('').join('') : q.t), //+ "\n" + a.date,
+									title:(a.title ? clearString(a.title) : q.t), //+ "\n" + a.date,
 								};
 								//console.log('Новое уведомление:',notif);
 								arr_notifications[Q_id]=notif;
 							}
 							notif.e = e;
-							if (a.what) notif.w = a.what;
-							if (a.anchor) notif.anchor=a.anchor;
-							if (a.url) notif.url = a.url;
+							if (a.what) notif.w = clearString(a.what);
+							if (a.anchor) notif.anchor=clearString(a.anchor);
+							if (a.url) notif.url = clearString(a.url);
 							notif.tm = now; //not used
 							noticed = true;
 							//console.log('Уведомление:',a);

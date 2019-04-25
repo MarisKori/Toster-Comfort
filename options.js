@@ -22,7 +22,7 @@ function init_checkbox(name,options) {
 			disabled = status_disabled;
 			e.parentNode.className = disabled ? "disabled" : ""; //update color if element is disabled or not
 		}
-		if (!master.checked || master.disabled) e.disabled = true;
+		if (master &&(!master.checked || master.disabled)) e.disabled = true;
 		updateCheckbox();
 		setTimeout(updateCheckbox,0);
 		if (master) master.addEventListener("change", updateCheckbox);
@@ -91,10 +91,12 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_word_karma");
 	init_checkbox("show_name");
 	init_checkbox("show_nickname");
-	init_checkbox("hide_offered_services");
 	init_checkbox("use_ctrl_enter");
-	init_checkbox("top24_show_tags");
-	init_checkbox("top24_show_author");
+	init_checkbox("hide_offered_services",{antimaster:'aside_right_noads'});
+	init_checkbox("aside_right_noads");
+	init_checkbox("aside_right_hide");
+	init_checkbox("top24_show_tags",{antimaster:'aside_right_hide'});
+	init_checkbox("top24_show_author",{antimaster:'aside_right_hide'});
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");

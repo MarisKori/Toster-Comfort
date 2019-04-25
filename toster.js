@@ -105,119 +105,123 @@ function hideElementClever(el) {
 }
 
 function update_questions(on_success, on_fail) {
-	chrome.runtime.sendMessage({
-		type: "getQuestions",
-		arr: request_questions,
-	}, function(data) {
-		//console.log("getQuestions",data);
-		let cnt = 0;
-		for(let q_id in data) {
-			qdb[q_id] = data[q_id]; //copy (update missing elements)
-			cnt++;
-		}
-		//console.log('Update Question List:',cnt);
-		let success = true;
-		elem.forEach(q=>{
-			if (q.tc_done) return;
-			if (OPTIONS.hide_solutions && q.solution === undefined) {
-				const found = q.e.parentNode.parentNode.parentNode.parentNode.querySelector('svg.icon_check');
-				q.solution = !!found;
-				if (found) {
+	try {
+		chrome.runtime.sendMessage({
+			type: "getQuestions",
+			arr: request_questions,
+		}, function(data) {
+			//console.log("getQuestions",data);
+			let cnt = 0;
+			for(let q_id in data) {
+				qdb[q_id] = data[q_id]; //copy (update missing elements)
+				cnt++;
+			}
+			//console.log('Update Question List:',cnt);
+			let success = true;
+			elem.forEach(q=>{
+				if (q.tc_done) return;
+				if (OPTIONS.hide_solutions && q.solution === undefined) {
+					const found = q.e.parentNode.parentNode.parentNode.parentNode.querySelector('svg.icon_check');
+					q.solution = !!found;
+					if (found) {
+						q.tc_done = true;
+						let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+						hideElementClever(parent)
+						//return;
+					}
+				}
+				const rec = qdb[q.id];
+				if (!rec) {
+					if (!q.tc_done) success = false;
+					return;
+				}
+				if (rec.hide && !q.tc_done) {
 					q.tc_done = true;
 					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
-					hideElementClever(parent)
+					hideElementClever(parent);
 					//return;
 				}
-			}
-			const rec = qdb[q.id];
-			if (!rec) {
-				if (!q.tc_done) success = false;
-				return;
-			}
-			if (rec.hide && !q.tc_done) {
-				q.tc_done = true;
-				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
-				hideElementClever(parent);
-				//return;
-			}
-			let user = rec.u;
-			let html = user_html(user);
-			if (html) {
-				q.e.innerHTML = html;
-			}
-			if (user_html_result) {
-				if (OPTIONS.show_blue_circle && (rec.q.sub || rec.q.sb)) { //html+='<span class="dot"></span>';
-					let q_wrap = q.e.parentNode.parentNode;
-					if (q_wrap) {
-						let q_title = q_wrap.querySelector('.question__title');
-						if (q_title) {
-							let dot = q_title.querySelector('.dot_sub') || q_title.querySelector('.dot_sb');
-							if (!dot) {
-								if (rec.q.sub) q_title.appendChild(createElement('span','dot_sub'));
-								else q_title.appendChild(createElement('span','dot_sb'));
+				let user = rec.u;
+				let html = user_html(user);
+				if (html) {
+					q.e.innerHTML = html;
+				}
+				if (user_html_result) {
+					if (OPTIONS.show_blue_circle && (rec.q.sub || rec.q.sb)) { //html+='<span class="dot"></span>';
+						let q_wrap = q.e.parentNode.parentNode;
+						if (q_wrap) {
+							let q_title = q_wrap.querySelector('.question__title');
+							if (q_title) {
+								let dot = q_title.querySelector('.dot_sub') || q_title.querySelector('.dot_sb');
+								if (!dot) {
+									if (rec.q.sub) q_title.appendChild(createElement('span','dot_sub'));
+									else q_title.appendChild(createElement('span','dot_sb'));
+								}
 							}
 						}
 					}
+					removeA(request_questions, q.id);
+					q.tc_done = true;
 				}
-				removeA(request_questions, q.id);
-				q.tc_done = true;
-			}
-			else if (!q.tc_done) success = false;
-			//Change color
-			if (rec.color) {
-				let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
-				parent.style.backgroundColor = rec.color;
-			}
-		});
-		elem_top_24.forEach(t=>{
-			if (t.tc_done == 2) return;
-			const rec = qdb[t.id];
-			if (!rec) return (success = false);
-			if (rec.hide) {
-				t.tc_done = 2;
-				t.e.style.display = 'none';
-				return;
-			}
-			if (!t.tc_done) {
-				if (OPTIONS.top24_show_tags) {
-					const tags = rec.q.tags;
-					if (tags) {
-						t.e.insertBefore(makeTags(tags), t.a);
-						t.e.insertBefore( document.createElement("BR"), t.a);
-					}
+				else if (!q.tc_done) success = false;
+				//Change color
+				if (rec.color) {
+					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+					parent.style.backgroundColor = rec.color;
 				}
-				t.tc_done = 1;
-			}
-			if (t.tc_done == 1) {
-				if (!OPTIONS.top24_show_author) {
+			});
+			elem_top_24.forEach(t=>{
+				if (t.tc_done == 2) return;
+				const rec = qdb[t.id];
+				if (!rec) return (success = false);
+				if (rec.hide) {
 					t.tc_done = 2;
+					t.e.style.display = 'none';
 					return;
 				}
-				const user = rec.u;
-				if (user) {
-					let html = user_html(user,true);
-					if (html) {
-						if (!t.author) {
-							let newItem = t.author = document.createElement("NOBR");
-							newItem.innerHTML = html;
-							t.e.insertBefore( newItem, t.a);
+				if (!t.tc_done) {
+					if (OPTIONS.top24_show_tags) {
+						const tags = rec.q.tags;
+						if (tags) {
+							t.e.insertBefore(makeTags(tags), t.a);
 							t.e.insertBefore( document.createElement("BR"), t.a);
-						} else {
-							t.author.innerHTML = html;
 						}
 					}
-					if (user_html_result) {
-						removeA(request_questions, t.id);
+					t.tc_done = 1;
+				}
+				if (t.tc_done == 1) {
+					if (!OPTIONS.top24_show_author) {
 						t.tc_done = 2;
 						return;
 					}
+					const user = rec.u;
+					if (user) {
+						let html = user_html(user,true);
+						if (html) {
+							if (!t.author) {
+								let newItem = t.author = document.createElement("NOBR");
+								newItem.innerHTML = html;
+								t.e.insertBefore( newItem, t.a);
+								t.e.insertBefore( document.createElement("BR"), t.a);
+							} else {
+								t.author.innerHTML = html;
+							}
+						}
+						if (user_html_result) {
+							removeA(request_questions, t.id);
+							t.tc_done = 2;
+							return;
+						}
+					}
 				}
-			}
-			success = false;
+				success = false;
+			});
+			if (on_success && success) on_success();
+			else if (on_fail && !success) on_fail();
 		});
-		if (on_success && success) on_success();
-		else if (on_fail && !success) on_fail();
-	});
+	} catch(e) {
+		console.log('Ошибка доступа к расширению TC.');
+	}
 }
 
 //all questions
@@ -251,7 +255,7 @@ function parse_questions() {
 			}
 		}
 	}
-	if (OPTIONS.top24_show_tags || OPTIONS.top24_show_author) {
+	if ((OPTIONS.top24_show_tags || OPTIONS.top24_show_author) && !OPTIONS.aside_right_hide) {
 		q = document.querySelectorAll('dl[role="most_interest"] > dd > ul.content-list > li.content-list__item');
 		for(let i=0;i<q.length;i++) {
 			let a = q[i].querySelector('a');
@@ -618,6 +622,27 @@ function initNotifications() {
 	}
 }
 
+function AsideRightFilters() {
+	removeCustomCSS(css_right_hide);
+	if (!(OPTIONS.aside_right_hide==1 || OPTIONS.aside_right_noads==1)) return;
+	let aside = document.getElementsByClassName('column_sidebar')[0];
+	if (!aside) return console.log('Правая колонка не найдена');
+	if (OPTIONS.aside_right_noads==1) {
+		let imgs = aside.getElementsByTagName('img');
+		for(let i=0;i<imgs.length;i++) {
+			let img = imgs[i];
+			img.style.display = 'none';
+			img.parentNode.style.display = 'none';
+		}
+	}
+	for (let i=0;i<aside.children.length;i++) {
+		let dl = aside.children[i];
+		if (OPTIONS.aside_right_hide == 1 || OPTIONS.aside_right_noads==1 && dl.getAttribute('role') != 'most_interest')
+			dl.style.display = 'none';
+	}
+}
+
+
 let OPTIONS = {};
 // Change page according to options
 function parse_opt() {
@@ -647,7 +672,7 @@ function parse_opt() {
 				q[i].style.display = '';
 			}
 		}
-		if (options.hide_offered_services == 1) {
+		if (options.hide_offered_services == 1 || options.aside_right_noads == 1) {
 			let q = document.getElementsByClassName('offered-services');
 			for (let i=0;i<q.length;i++) {
 				q[i].style.display = 'none';
@@ -674,12 +699,41 @@ function parse_opt() {
 				}
 			}
 		}
+		//Aside filters
+		AsideRightFilters();
 	});
 }
 
-function addCustomCSS() {
+function addCustomCSS(css) {
 	let style = document.createElement('style');
-	style.innerHTML = `
+	style.innerHTML = css;
+	if (document.head) document.head.appendChild(style);
+	else document.children[0].appendChild(style);
+}
+function removeCustomCSS(css) {
+	let arr = document.getElementsByTagName('style');
+	for (let i=0, max = arr.length; i < max; i++) {
+		if (arr[i].innerHTML == css) {
+			arr[i].parentNode.removeChild(arr[i]);
+			break;
+		}
+	}
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+	parse_opt();
+	addCustomCSS(css_global);
+	if (location.href.indexOf('https://toster.ru/q/') > -1 || location.href.indexOf('https://toster.ru/answer') > -1) {
+		parse_q();
+	}
+	if (!location.href.match(/^https:\/\/toster\.ru\/user\/.*\/questions/)) listenOnOptions(parse_questions);
+});
+
+
+const css_right_hide = '.column_sidebar { visibility: hidden; }';
+addCustomCSS(css_right_hide);
+
+const css_global = `
 .dot_sub {
   height: 14px;
   width: 14px;
@@ -699,24 +753,6 @@ function addCustomCSS() {
 	font-weight:normal;
 }
 `;
-	document.head.appendChild(style);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-	parse_opt();
-	addCustomCSS();
-	if (location.href.indexOf('https://toster.ru/q/') > -1 || location.href.indexOf('https://toster.ru/answer') > -1) {
-		parse_q();
-	}
-	if (!location.href.match(/^https:\/\/toster\.ru\/user\/.*\/questions/)) listenOnOptions(parse_questions);
-});
-
-
-
-
-
-
-
 
 
 
