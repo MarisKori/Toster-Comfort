@@ -58,7 +58,7 @@ var TOKEN_FN = {
 	'containsWord':s=>{
 		let needle = s.pop().token.toLowerCase();
 		let haystack = s.pop().token.toLowerCase();
-		needle = '(?<=[^а-яА-ЯёЁ\\w]|^)' + needle.replace(/\s+/g, '\\s+') + '(?=[^а-яА-ЯёЁ\\w]|$)'; //.replace(/\\/g,'\\\\')
+		needle = '(?:[^а-яА-ЯёЁ\\w]|^)' + needle.replace(/\s+/g, '\\s+') + '(?=[^а-яА-ЯёЁ\\w]|$)'; //.replace(/\\/g,'\\\\')
 		return new Token(haystack.match(needle)!==null);
 	},
 }

@@ -126,6 +126,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		cond_error.innerHTML = background.cond_update_error_string;
 	}});
 	setTimeout(()=>checkNotifyCnt(background.getDbCondLength()),300);
+	init_checkbox("show_my_questions");
+	init_checkbox("show_my_answers");
+	init_checkbox("minify_curator");
+	init_checkbox("remove_te_spam");
 
 	//datetime
 	init_checkbox("datetime_replace");

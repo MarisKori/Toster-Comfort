@@ -46,6 +46,7 @@ function clean_db(timeout_days) {
 	}
 	//remove questions
 	for(let id in db.question) {
+		if (tracker_q_ids[id]) continue;
 		let q = db.question[id];
 		//ignore subscribtions
 		if (q.sub) {
@@ -172,6 +173,7 @@ function parseTags(txt) {
 }
 
 function analyzeQuestion(question_id, now) {
+	if (tracker_q_ids[question_id]) return; //Нельзя.
 	if (!now) now = (new Date()).getTime();
 	let q = {is_pending:true, ut:now};
 	db.question[question_id] = q;
@@ -219,7 +221,7 @@ function analyzeQuestion(question_id, now) {
 		else {
 			delete q.sb;
 		}
-	});
+	}, e=>{ delete q.is_pending; } );
 	return q;
 }
 
@@ -372,13 +374,15 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		}
 		sendResponse(options);
 	} else if (request.type == "getNotifications") {
+		let no_comments = request.nc;
 		let now = (new Date()).getTime();
+		if (no_comments) notifications_pause = now;
 		let el_hash = {	hash:events_list_navbar_hash };
 		if (now - notifications_pause < 30000) { //Выдерживаем паузу.
 			sendResponse({1:el_hash}); //Но не обнуляем
 			return;
 		}
-		if (now - tm_browser_load < 60000) { //После загрузки расширения не паникуем, не спамим, молчим.
+		if (now - tm_browser_load < 40000) { //После загрузки расширения не паникуем, не спамим, молчим.
 			arr_notifications = {}; //Сливаем все уведомления в трубу.
 			if (c_kick_truba===undefined) {
 				c_kick_truba=false;
@@ -392,7 +396,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		getNotifications_last_time = now;
 		for(q_id in arr_notifications) { //Чистим от старых
 			let item = arr_notifications[q_id];
-			if (now - item.tm > 40000) {
+			if (now - item.tm > 30000) {
 				console.log('Удаляем по таймауту',now,arr_notifications[q_id]);
 				delete arr_notifications[q_id];
 			}
@@ -403,9 +407,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		arr_notifications = {};
 	} else if (request.type == "disableNotifications") {
 		localStorage.enable_notifications = 0;
-	} else if (request.type == "tabIsActive") {
-		//console.log('Активная вкладка! Продеваем паузу');
-		notifications_pause = (new Date()).getTime();
 	} else if (request.type == "updateIconNum") {
 		if (request.hash != events_list_navbar_hash) {
 			events_list_navbar_hash = request.hash;
@@ -460,6 +461,7 @@ let TOSTER_OPTIONS = [
 	//'always_notify_my_questions', 'notify_about_likes', 'notify_about_solutions',
 	'datetime_replace', 'datetime_days', 'show_blue_circle', 'notify_all',
 	'aside_right_noads', 'aside_right_hide',
+	'show_my_questions', 'show_my_answers', 'minify_curator', 'remove_te_spam',
 ];
 
 let HABR_OPTIONS = [
@@ -655,6 +657,7 @@ function updateNitificationsMyFeed(now) {
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
 		function checkQuestion(q_id) {
+			if (tracker_q_ids[q_id]) return;
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
 			if (save_current_user && save_current_user == q.user_id) return;
@@ -722,6 +725,7 @@ function updateNitificationsFilterAll(now) {
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
 		function checkQuestion(q_id) {
+			if (tracker_q_ids[q_id]) return; //В трекере уведомлений. Нельзя заходить.
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
 			if (q.is_pending) return;
@@ -811,11 +815,15 @@ let notifications_pause = 0; //Метка активации паузы. 30 се
 const tm_browser_load = (new Date()).getTime();
 let getNotifications_last_time = 0; //Последнее обращение страницы.
 let save_current_user = ''; //Текущий пользователь, или прошлый.
+let tracker_q_ids = {}; //Вопросы в трекере, которые не нужно удалять.
+let tracker_q_visited = false;
 //let start_page = 10;
 function updateNotificationOptions() {
 	if (notifications_timer !== undefined) {
 		clearInterval(notifications_timer);
 		notifications_timer = undefined;
+		tracker_q_ids = {};
+		tracker_q_visited = false;
 		//console.log('notifications disabled');
 	}
 	if (localStorage.enable_notifications == 1) {
@@ -832,6 +840,7 @@ function updateNotificationOptions() {
 			xhr.open('GET', url, true);
 			xhr.send();
 			xhr.onload = function() {
+				tracker_q_visited = true;
 				let now = (new Date()).getTime();
 				if (xhr.status != 200) return;
 				//Глобальное объявление
@@ -891,14 +900,22 @@ function updateNotificationOptions() {
 				let notify_all = localStorage.notify_all==1;
 				//Парсим на отдельные секции вопросов
 				let r = /<a class="question__title-link" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\s\S]*?<ul class="events-list">([\s\S]*?)<\/ul>/g;
+				tracker_q_ids = {};
 				while (m = r.exec(html)) { //Блок отдельного вопроса
 					let Q_id = m[1]-0;
+					tracker_q_ids[Q_id] = true;
 					let Q_title = m[2].trim(); //console.log('Title:',Q_title);
 					let ul = m[3];
 					let q = db.question[Q_id];
-					if (!q) q = analyzeQuestion(Q_id, now);
+					if (!q) { //q = analyzeQuestion(Q_id, now);
+						q = {
+							t: Q_title,
+							ut: now,
+						};
+						db.question[Q_it] = q;
+					}
 					let renamed, noticed;
-					if (q.t.replace('«','"').replace('»','"') != Q_title) {
+					if (!q.t || q.t.replace('«','"').replace('»','"').replace('—','-') != Q_title) {
 						//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
 						renamed = !!q.t;
 						q.t = clearString(Q_title); //Быстрый синхронный title
@@ -1050,9 +1067,11 @@ function updateNotificationOptions() {
 				}
 				freeRegExp();
 			};
-			let now = (new Date()).getTime();
-			if (localStorage.notify_my_feed == 1) updateNitificationsMyFeed(now);
-			if (localStorage.enable_notify_action == 1) updateNitificationsFilterAll(now);
+			if (tracker_q_visited) {
+				let now = (new Date()).getTime();
+				if (localStorage.notify_my_feed == 1) updateNitificationsMyFeed(now);
+				if (localStorage.enable_notify_action == 1) updateNitificationsFilterAll(now);
+			}
 		}, 15000);
 	} else {
 		chrome.browserAction.setBadgeText({text:""});

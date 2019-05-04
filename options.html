@@ -29,7 +29,7 @@ textarea {
 </style>
 </head><body>
 <div id="current_version"></div>
-<h3>Статистика вопрошающего</h3>
+<h3>Статистика авторов вопросов</h3>
 <label for="cut_karma">
   <input id="cut_karma" type="checkbox">
   Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
@@ -66,7 +66,7 @@ textarea {
 </label>
 <label for="aside_right_noads">
   <input id="aside_right_noads" type="checkbox">
-  Скрыть рекламу <span class=new>(new!)</span>
+  Скрыть всю рекламу <span class=new>(new!)</span>
 </label>
 <label for="hide_offered_services">
   <input id="hide_offered_services" type="checkbox">
@@ -100,6 +100,22 @@ textarea {
 	<input id="show_blue_circle" type="checkbox">
 	Показывать круглую метку для вопросов с подпиской
 </label>
+<label for="show_my_questions">
+	<input id="show_my_questions" type="checkbox">
+	Показывать мои вопросы в меню <span class=new>(new!)</span>
+</label>
+<label for="show_my_answers">
+	<input id="show_my_answers" type="checkbox">
+	Показывать мои ответы в меню <span class=new>(new!)</span>
+</label>
+<label for="minify_curator">
+	<input id="minify_curator" type="checkbox">
+	Сокращать титул куратора до названия тега <span class=new>(new!)</span>
+</label>
+<label for="remove_te_spam">
+	<input id="remove_te_spam" type="checkbox">
+	Скрывать уведомление "Настройки Toster Extension изменены" <span class=new>(new!)</span>
+</label>
 
 
 <h3>Уведомления</h3>
@@ -109,7 +125,7 @@ textarea {
 </label>
 <label for="notify_if_inactive">
 	<input id="notify_if_inactive" type="checkbox">
-	Уведомлять только при неактивной вкладке
+	Уведомлять только при неактивной вкладке <span class=new>Fixed.</span>
 </label>
 <label for="notify_all">
 	<input id="notify_all" type="checkbox">

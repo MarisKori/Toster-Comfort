@@ -475,20 +475,28 @@ function updateAside(data) {
 	//console.log('Апдейтим уведомления:',aside_hash,data.html.length,ul.innerHTML.length,data.html);
 }
 
+let window_focus = true;
+window.addEventListener("blur",e=>window_focus=false);
+window.addEventListener("focus",e=>window_focus=true);
+
+
 function updateNotifications(is_first_time) {
 	try {
+		let no_comments = 0;
 		if (OPTIONS.notify_if_inactive&&
-			(document.hidden===true
+			!(document.hidden===true
 				||document.webkitHidden===true
-				||document.visibilityState=='visible'
+				||document.visibilityState=='hidden'
 				||document.visibilityState=='prerender'
+				||window_focus===false
 			)
 		) {
-			chrome.runtime.sendMessage({type:'tabIsActive'});
-			return;
+			//chrome.runtime.sendMessage({type:'tabIsActive'});
+			no_comments = 1;
 		}
 		chrome.runtime.sendMessage({
 			type: "getNotifications",
+			nc: no_comments,
 		}, function(arr) {
 			for (q_id in arr) {
 				let item = arr[q_id];
@@ -628,6 +636,9 @@ function AsideRightFilters() {
 	let aside = document.getElementsByClassName('column_sidebar')[0];
 	if (!aside) return console.log('Правая колонка не найдена');
 	if (OPTIONS.aside_right_noads==1) {
+		let promo = document.querySelector('.promo-block');
+		if (promo) promo.style.display = 'none';
+		//for sure
 		let imgs = aside.getElementsByTagName('img');
 		for(let i=0;i<imgs.length;i++) {
 			let img = imgs[i];
@@ -642,6 +653,114 @@ function AsideRightFilters() {
 	}
 }
 
+//Добавляет пункты в главное меню
+function AsideMenu() {
+	if (!(OPTIONS.show_my_questions || OPTIONS.show_my_answers)) return;
+	let a = document.querySelector('.user-panel__user-name'), m, username;
+	if (a && (m = a.href.match(/toster\.ru\/user\/([^"]+)/))) {
+		username = m[1];
+	}
+	if(!username) return console.log('logged out');
+	let main_menus = document.querySelectorAll('.main-menu');
+	let menu_item;
+	for(let i=main_menus.length-1;i>=0;i--){
+		let item = main_menus[i].children[0];
+		if (item && item.innerText.trim() == 'Моя лента') {
+			menu_item = item.nextElementSibling;
+			main_menus = main_menus[i];
+			break;
+		}
+	}
+	if (!menu_item) return console.log('Main menu not found.');
+	if (OPTIONS.show_my_questions) {
+		let e = menu_item.cloneNode(true);
+		let a = e.children[0];
+		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
+			a.childNodes[2].nodeValue = 'Мои вопросы';
+			a.href = 'user/'+username+'/questions';
+			main_menus.appendChild(e);
+		}
+	}
+	if (OPTIONS.show_my_answers) {
+		let e = menu_item.cloneNode(true);
+		let a = e.children[0];
+		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
+			a.childNodes[2].nodeValue = 'Мои ответы';
+			a.href = 'user/'+username+'/answers';
+			main_menus.appendChild(e);
+		}
+	}
+}
+
+function FilterCurator() { //Убираем приставку "Куратор тега", оставляем только название тега.
+	if (!OPTIONS.minify_curator) return;
+	let spans = document.querySelectorAll('span.author_mark');
+	for(let i=0;i<spans.length;i++) {
+		if (spans[i].innerHTML.indexOf('Куратор тега ') === 0) spans[i].innerHTML = spans[i].innerHTML.substr(13);
+		else if (spans[i].innerHTML === 'Автор вопроса') spans[i].innerHTML = 'Автор';
+	}
+}
+
+function RemoveTESpam() {
+	if (!OPTIONS.remove_te_spam) return;
+	let notices_container = document.querySelector('.flash-notices');
+	if (notices_container) {
+		let observer = new MutationObserver(function(mutationsList, observer) {
+			for(var mutation of mutationsList) {
+				if (mutation.type == 'childList') {
+					//console.log('A child node has been added or removed.');
+					for(let i=0;i<mutation.addedNodes.length;i++){
+						let n = mutation.addedNodes[i];
+						if (n.innerHTML.indexOf('Настройки Toster Extension изменены') > -1) {
+							n.parentNode.removeChild(n);
+						}
+					}
+				}
+				else if (mutation.type == 'attributes') {
+					//console.log('The ' + mutation.attributeName + ' attribute was modified.');
+				}
+				//else console.log('Mutation '+mutation.type );
+				//console.log(mutation);
+			}
+		});
+		observer.observe(notices_container, {
+			attributes:true, childList:true, subtree:true, characterData:true,
+		});
+	}
+}
+
+function HideSolButton() {
+	if (OPTIONS.hide_sol_button == 1) {
+		let q = document.getElementsByClassName('buttons-group_answer');
+		for(let i=0;i<q.length;i++) {
+			let sol = q[i].querySelector('span.btn_solution');
+			if (sol) sol.style.display = 'none';
+		}
+	} else if (OPTIONS.swap_buttons == 1) {
+		let q = document.getElementsByClassName('buttons-group_answer');
+		for(let i=0;i<q.length;i++) {
+			let sol = q[i].querySelector('span.btn_solution');
+			let like = q[i].querySelector('a.btn_like');
+			if (sol && like) {
+				q[i].insertBefore(like, sol);
+			}
+		}
+	}
+}
+
+function DateTimeReplace() {
+	if (OPTIONS.datetime_replace == 1) {
+		let now = (new Date()).getTime();
+		let t = document.getElementsByTagName('time');
+		for(let i=0;i<t.length;i++) {
+			let title = t[i].title;
+			let datetime = t[i].dateTime;
+			if (datetime && now - (new Date(datetime)).getTime() > OPTIONS.datetime_days * 24 * 60 * 60000) {
+				if (title && title.indexOf('Дата публикации: ') > -1) t[i].innerHTML = title.substr(17);
+			}
+		}
+	}
+}
 
 let OPTIONS = {};
 // Change page according to options
@@ -650,22 +769,7 @@ function parse_opt() {
 		type: "getOptions",
 	}, function(options) {
 		OPTIONS = options;
-		if (options.hide_sol_button == 1) {
-			let q = document.getElementsByClassName('buttons-group_answer');
-			for(let i=0;i<q.length;i++) {
-				let sol = q[i].querySelector('span.btn_solution');
-				if (sol) sol.style.display = 'none';
-			}
-		} else if (options.swap_buttons == 1) {
-			let q = document.getElementsByClassName('buttons-group_answer');
-			for(let i=0;i<q.length;i++) {
-				let sol = q[i].querySelector('span.btn_solution');
-				let like = q[i].querySelector('a.btn_like');
-				if (sol && like) {
-					q[i].insertBefore(like, sol);
-				}
-			}
-		}
+		sandbox(HideSolButton);
 		if (options.show_habr == 1) {
 			let q = document.getElementsByClassName('buttons-group_answer');
 			for(let i=0;i<q.length;i++) {
@@ -678,29 +782,19 @@ function parse_opt() {
 				q[i].style.display = 'none';
 			}
 		}
-		if (options.use_ctrl_enter == 1) {
-			set_ctrl_enter_handler();
-		}
-		if (options.save_form_to_storage == 1) {
-			enable_save_form_to_storage();
-		}
-		arr_on_options_callback.forEach(fn=>fn());
+		if (options.use_ctrl_enter == 1) sandbox(set_ctrl_enter_handler);
+		if (options.save_form_to_storage == 1) sandbox(enable_save_form_to_storage);
+		arr_on_options_callback.forEach(fn=>sandbox(fn));
 		is_options_loaded = true;
 		//Manage notifications
-		if (options.enable_notifications == 1) initNotifications();
-		if (options.datetime_replace == 1) {
-			let now = (new Date()).getTime();
-			let t = document.getElementsByTagName('time');
-			for(let i=0;i<t.length;i++) {
-				let title = t[i].title;
-				let datetime = t[i].dateTime;
-				if (datetime && now - (new Date(datetime)).getTime() > options.datetime_days * 24 * 60 * 60000) {
-					if (title && title.indexOf('Дата публикации: ') > -1) t[i].innerHTML = title.substr(17);
-				}
-			}
-		}
+		if (options.enable_notifications == 1) sandbox(initNotifications);
+		sandbox(DateTimeReplace);
 		//Aside filters
-		AsideRightFilters();
+		sandbox(AsideRightFilters);
+		//Aside menu
+		sandbox(AsideMenu);
+		sandbox(FilterCurator);
+		sandbox(RemoveTESpam);
 	});
 }
 
@@ -754,7 +848,12 @@ const css_global = `
 }
 `;
 
-
+function sandbox(fn) {
+	try { return fn(); } catch(e) {
+		console.log('Ошибка в функции: ',fn.name);
+		console.log(e);
+	}
+}
 
 
 
