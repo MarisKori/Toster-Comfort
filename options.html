@@ -24,198 +24,325 @@ textarea {
   white-space: pre;
   overflow-wrap: normal;
   overflow-x: scroll;
+	width:650px;
+	background-color:#fdd;
+}
+.frame {
+	border: 1px solid #aaa;
+	border-radius: 7px;
+	margin:2px;
+	margin-left:0px;
+	padding:2px;
+	padding-left:5px;
+	max-width:650px;
 }
 
+#tabs .tab {
+    display: inline-block; /* выстраиваем вкладки в один ряд */
+    padding: 5px 10px;
+    cursor: pointer;
+    position: relative;
+    z-index:5;
+}
+#tabs .whiteborder {
+   border: 1px solid #707070;
+    border-bottom: 1px solid #fff;
+    border-radius: 3px 3px 0  0;
+}
+#tabs .tabContent {
+    width: 650px;
+    
+    border: 1px solid #707070;
+    position: relative;
+    top: -1px; 
+    z-index:1;
+    padding: 10px;
+    border-radius: 0 0 3px 3px
+}
+#tabs .hide {
+    display: none;
+}
+#tabs .show {
+    display: block;
+}
+#tabs, #open { ddisplay:none; }
 </style>
 </head><body>
-<div id="current_version"></div>
-<h3>Статистика авторов вопросов</h3>
-<label for="cut_karma">
-  <input id="cut_karma" type="checkbox">
-  Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
-</label>
-<label for="show_habr">
-  <input id="show_habr" type="checkbox">
-  Показывать количество публикаций/комментариев на Хабре, если есть
-</label>
-<label for="hide_word_karma">
-  <input id="hide_word_karma" type="checkbox">
-  Убрать слово "Карма"
-</label>
-<label for="show_name">
-  <input id="show_name" type="checkbox">
-  Показывать имя в списке вопросов
-</label>
-<label for="show_nickname">
-  <input id="show_nickname" type="checkbox">
-  Показывать ник в списке вопросов
-</label>
+<div id="tabs">
+	<div class="tab whiteborder">О расширении</div>
+	<div class="tab">Пользователи</div>
+	<div class="tab">Интерфейс</div>
+	<div class="tab">Уведомления</div>
+	<div class="tab">Фильтры</div>
+	<div class="tab">Хабр</div>
+	<div class="tabContent"></div>
+	<div class="tabContent"></div>
+	<div class="tabContent"></div>
+	<div class="tabContent"></div>
+	<div class="tabContent"></div>
+	<div class="tabContent"></div>
+</div>
+<div id="open">
+	<div id="about">
+		<div id="current_version"></div>
+		<a href="https://github.com/MarisKori/Toster-Comfort/issues">Пожаловаться на баги</a>
+	</div>
+	
+	<div id="stats">
+		<h3>Пользователи</h3>
+		<label for="cut_karma">
+			<input id="cut_karma" type="checkbox">
+			Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
+		</label>
+		<label for="show_habr">
+			<input id="show_habr" type="checkbox">
+			Показывать количество публикаций/комментариев на Хабре, если есть
+		</label>
+		<label for="hide_word_karma">
+			<input id="hide_word_karma" type="checkbox">
+			Убрать слово "Карма"
+		</label>
+		<label for="show_name">
+			<input id="show_name" type="checkbox">
+			Показывать имя в списке вопросов
+		</label>
+		<label for="show_nickname">
+			<input id="show_nickname" type="checkbox">
+			Показывать ник в списке вопросов
+		</label>
+	</div>
 
-<h3>Интерфейс Тостера</h3>
-<label for="hide_sol_button">
-  <input id="hide_sol_button" type="checkbox">
-  Скрыть кнопку "Отметить решением" (для чужих вопросов)
-</label>
-<label for="swap_buttons">
-  <input id="swap_buttons" type="checkbox">
-  Поменять местами "Отметить решением" и "Нравится"
-</label>
-<label for="use_ctrl_enter">
-  <input id="use_ctrl_enter" type="checkbox">
-  Использовать Ctrl+Enter для отправки формы
-</label>
-<label for="aside_right_noads">
-  <input id="aside_right_noads" type="checkbox">
-  Скрыть всю рекламу <span class=new>(new!)</span>
-</label>
-<label for="hide_offered_services">
-  <input id="hide_offered_services" type="checkbox">
-  Скрыть блок с вакансиями и заказами
-</label>
-<label for="aside_right_hide">
-  <input id="aside_right_hide" type="checkbox">
-  Скрыть весь правый блок <span class=new>(new!)</span>
-</label>
-<label for="top24_show_tags">
-  <input id="top24_show_tags" type="checkbox">
-  Показывать теги в "Самое интересное за 24 часа"
-</label>
-<label for="top24_show_author">
-  <input id="top24_show_author" type="checkbox">
-  Показывать автора в "Самое интересное за 24 часа"
-</label>
-<label for="save_form_to_storage">
-  <input id="save_form_to_storage" type="checkbox">
-  Сохранять введенный в форму текст до отправки
-</label>
-<label for="datetime_replace">
-	<input id="datetime_replace" type="checkbox">
-	Указывать точное время вопросов и ответов
-</label>
-<label for="datetime_days">
-	<input id="datetime_days" size=5 style="line-height:12px;margin: 0;padding:0;font-size:12px">
-	Количество дней, больше которого нужно указывать точное время
-</label>
-<label for="show_blue_circle">
-	<input id="show_blue_circle" type="checkbox">
-	Показывать круглую метку для вопросов с подпиской
-</label>
-<label for="show_my_questions">
-	<input id="show_my_questions" type="checkbox">
-	Показывать мои вопросы в меню <span class=new>(new!)</span>
-</label>
-<label for="show_my_answers">
-	<input id="show_my_answers" type="checkbox">
-	Показывать мои ответы в меню <span class=new>(new!)</span>
-</label>
-<label for="minify_curator">
-	<input id="minify_curator" type="checkbox">
-	Сокращать титул куратора до названия тега <span class=new>(new!)</span>
-</label>
-<label for="remove_te_spam">
-	<input id="remove_te_spam" type="checkbox">
-	Скрывать уведомление "Настройки Toster Extension изменены" <span class=new>(new!)</span>
-</label>
+	<div id="toster">
+		<h3>Интерфейс Тостера</h3>
+		<label for="options_tabs">
+			<input id="options_tabs" type="checkbox">
+			Показывать настройки в виде вкладок <span class=new>(new!)</span>
+		</label>
+		<div class="frame">
+			<label for="hide_sol_button">
+				<input id="hide_sol_button" type="checkbox">
+				Скрыть кнопку "Отметить решением" (для чужих вопросов)
+			</label>
+			<label for="swap_buttons">
+				<input id="swap_buttons" type="checkbox">
+				Поменять местами "Отметить решением" и "Нравится"
+			</label>
+			<label for="minify_names">
+				<input id="minify_names" type="checkbox">
+				Заменить названия элементов более короткими <span class=new>(new!)</span>
+			</label>
+		</div>
+		<div class="frame">
+			<label for="use_ctrl_enter">
+				<input id="use_ctrl_enter" type="checkbox">
+				Использовать Ctrl+Enter для отправки формы
+			</label>
+			<label for="save_form_to_storage">
+				<input id="save_form_to_storage" type="checkbox">
+				Сохранять введенный в форму текст до отправки <span class=new>upgraded</span>
+			</label>
+		</div>
+		<label for="aside_right_noads">
+			<input id="aside_right_noads" type="checkbox">
+			Скрыть всю рекламу
+		</label>
+		<label for="hide_offered_services">
+			<input id="hide_offered_services" type="checkbox">
+			Скрыть блок с вакансиями и заказами
+		</label>
+		<label for="aside_right_hide">
+			<input id="aside_right_hide" type="checkbox">
+			Скрыть весь правый блок
+		</label>
+		<div class="frame">
+			<label for="is_widget">
+				<input id="is_widget" type="checkbox">
+				Показывать виджет расширения в правой колонке <span class=new>(new!)</span>
+			</label>
+			<label for="is_debug">
+				<input id="is_debug" type="checkbox">
+				Кнопка перезагрузки расширения (для отладки расширения)
+			</label>
+			<label for="is_options_button">
+				<input id="is_options_button" type="checkbox">
+				Кнопка настроек <span class=new>(new!)</span>
+			</label>
+			<label for="is_search">
+				<input id="is_search" type="checkbox">
+				Поиск по своим вопросам и ответам <span class=new>(new!)</span>
+			</label>
+			<label for="check_online">
+				<input id="check_online" type="checkbox">
+				Смотреть, кто онлайн (не рекомендуется) <span class=new>(new!)</span>
+			</label>
+		</div>
+		<div class="frame">
+			<label for="top24_show">
+				<input id="top24_show" type="checkbox">
+				Показывать блок "Самое интересное за 24 часа" <span class=new>(new!)</span>
+			</label>
+			<label for="top24_show_tags">
+				<input id="top24_show_tags" type="checkbox">
+				Показывать теги в "Самое интересное за 24 часа"
+			</label>
+			<label for="top24_show_author">
+				<input id="top24_show_author" type="checkbox">
+				Показывать автора в "Самое интересное за 24 часа"
+			</label>
+		</div>
+		<label for="datetime_replace">
+			<input id="datetime_replace" type="checkbox">
+			Указывать точное время вопросов и ответов
+		</label>
+		<label for="datetime_days">
+			<input id="datetime_days" size=5 style="line-height:12px;margin: 0;padding:0;font-size:12px">
+			Количество дней, больше которого нужно указывать точное время
+		</label>
+		<label for="show_blue_circle">
+			<input id="show_blue_circle" type="checkbox">
+			Показывать круглую метку для вопросов с подпиской
+		</label>
+		<div class="frame">
+			<label for="show_my_questions">
+				<input id="show_my_questions" type="checkbox">
+				Показывать мои вопросы в меню
+			</label>
+			<label for="show_my_answers">
+				<input id="show_my_answers" type="checkbox">
+				Показывать мои ответы в меню
+			</label>
+		</div>
+		<label for="minify_curator">
+			<input id="minify_curator" type="checkbox">
+			Убрать лишние слова (титул куратора, автора)
+		</label>
+		<label for="remove_te_spam">
+			<input id="remove_te_spam" type="checkbox">
+			Скрывать уведомление "Настройки Toster Extension изменены"
+		</label>
+		
+	</div>
 
+	<div id="notifications">
+		<h3>Уведомления</h3>
+		<label for="enable_notifications">
+			<input id="enable_notifications" type="checkbox">
+			Получать <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Уведомления">браузерные уведомления</a> при открытой вкладке - кнопка "Следить" на вопросах
+		</label>
+		<label for="notify_if_inactive">
+			<input id="notify_if_inactive" type="checkbox">
+			Уведомлять только при неактивной вкладке
+		</label>
+		<label for="notify_all">
+			<input id="notify_all" type="checkbox">
+			Всегда получать вообще все уведомления (не рекомендуется)
+		</label>
+		<div class="frame">
+			<label for="always_notify_my_questions">
+				<input id="always_notify_my_questions" type="checkbox">
+				Уведомлять об активности в моих собственных вопросах
+			</label>
+			<label for="notify_answer_comment">
+				<input id="notify_answer_comment" type="checkbox">
+				Уведомлять о любых ответах и комментариях в подписках
+			</label>
+			<label for="notify_about_likes">
+				<input id="notify_about_likes" type="checkbox">
+				Уведомлять о лайках
+			</label>
+			<label for="notify_about_solutions">
+				<input id="notify_about_solutions" type="checkbox">
+				Уведомлять о выбранных решениях
+			</label>
+			<label for="notify_mention">
+				<input id="notify_mention" type="checkbox">
+				Уведомлять об упоминаниях
+			</label>
+			<label for="notify_expert">
+				<input id="notify_expert" type="checkbox">
+				Приглашать в качестве эксперта
+			</label>
+			<label for="notify_moderator">
+				<input id="notify_moderator" type="checkbox">
+				Уведомлять о любых действиях модератора
+			</label>
+			<label for="notify_changes">
+				<input id="notify_changes" type="checkbox">
+				Уведомлять о правках
+			</label>
+		</div>
+		<div class="frame">
+			<label for="notify_my_feed">
+				<input id="notify_my_feed" type="checkbox">
+				Уведомлять о новых вопросах в Моей ленте
+			</label>
+			<label for="faster_my_feed">
+				<input id="faster_my_feed" type="checkbox">
+				Ускорять загрузку Моей ленты <span class=new>(new!)</span>
+			</label>
+			<label for="faster_page_1">
+				<input id="faster_page_1" type="checkbox">
+				Ускорять загрузку первой страницы вопросов <span class=new>(new!)</span>
+			</label>
+			<label for="enable_notify_action">
+				<input id="enable_notify_action" type="checkbox">
+				Включить <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">действие notify</a> в фильтрах (для всех вопросов)<br>
+				<span class=error id="na_error">&nbsp;</span>
+			</label>
+		</div>
+	</div>
 
-<h3>Уведомления</h3>
-<label for="enable_notifications">
-  <input id="enable_notifications" type="checkbox">
-  Получать <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Уведомления">браузерные уведомления</a> при открытой вкладке - кнопка "Следить" на вопросах
-</label>
-<label for="notify_if_inactive">
-	<input id="notify_if_inactive" type="checkbox">
-	Уведомлять только при неактивной вкладке <span class=new>Fixed.</span>
-</label>
-<label for="notify_all">
-	<input id="notify_all" type="checkbox">
-	Всегда получать вообще все уведомления (не рекомендуется)
-</label>
-<label for="always_notify_my_questions">
-	<input id="always_notify_my_questions" type="checkbox">
-	Уведомлять об активности в моих собственных вопросах
-</label>
-<label for="notify_answer_comment">
-	<input id="notify_answer_comment" type="checkbox">
-	Уведомлять о любых ответах и комментариях в подписках
-</label>
-<label for="notify_about_likes">
-	<input id="notify_about_likes" type="checkbox">
-	Уведомлять о лайках
-</label>
-<label for="notify_about_solutions">
-	<input id="notify_about_solutions" type="checkbox">
-	Уведомлять о выбранных решениях
-</label>
-<label for="notify_mention">
-	<input id="notify_mention" type="checkbox">
-	Уведомлять об упоминаниях
-</label>
-<label for="notify_expert">
-	<input id="notify_expert" type="checkbox">
-	Приглашать в качестве эксперта
-</label>
-<label for="notify_moderator">
-	<input id="notify_moderator" type="checkbox">
-	Уведомлять о любых действиях модератора
-</label>
-<label for="notify_changes">
-	<input id="notify_changes" type="checkbox">
-	Уведомлять о правках
-</label>
-<label for="notify_my_feed">
-	<input id="notify_my_feed" type="checkbox">
-	Уведомлять о новых вопросах в Моей ленте
-</label>
-<label for="enable_notify_action">
-	<input id="enable_notify_action" type="checkbox">
-	Включить <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">действие notify</a> в фильтрах (для всех вопросов)<br>
-	<span class=error id="na_error">&nbsp;</span>
-</label>
+	<div id="filters">
+		<h3>Фильтры</h3>
+		<label for="make_dark">
+			<input id="make_dark" type="checkbox">
+			Затемнять вопросы, а не буквально скрывать (убирать)
+		</label>
+		<label for="hide_solutions">
+			<input id="hide_solutions" type="checkbox">
+			Скрывать вопросы с решениями
+		</label>
+		<p>
+			Фильтр тегов (по одному на строку):<br>
+			<textarea id="tag_blacklist" cols=100 rows=5></textarea>
+		</p>
 
-<h3>Фильтры</h3>
-<label for="make_dark">
-  <input id="make_dark" type="checkbox">
-  Затемнять вопросы, а не буквально скрывать (убирать)
-</label>
-<label for="hide_solutions">
-  <input id="hide_solutions" type="checkbox">
-  Скрывать вопросы с решениями
-</label>
-<p>
-  Чёрный список тегов (по одному на строку):<br>
-  <textarea id="tag_blacklist" cols=100 rows=5></textarea>
-</p>
+		<p>
+			<a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">Дополнительные условия</a> (по одному на строку).<br>
+			Формат: Си-подобное-условие = действие.<br>
+			Действием может быть слово либо hide, либо notify, либо цвет типа #f00.<br>
+			В условии можно использовать:
+				questions, answers, solutions, karma, comments, publications и функцию tag<br>
+			
+			<textarea id="all_conditions" cols=100 rows=5></textarea><br>
+			<span class=error id="cond_error"></span>
+		</p>
 
-<p>
-  <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Дополнительные-правила">Дополнительные условия</a> (по одному на строку).<br>
-  Формат: Си-подобное-условие = действие.<br>
-  Действием может быть слово либо hide, либо notify, либо цвет типа #f00.<br>
-  В условии можно использовать:
-    questions, answers, solutions, karma, comments, publications и функцию tag<br>
-  
-  <textarea id="all_conditions" cols=100 rows=5></textarea><br>
-  <span class=error id="cond_error"></span>
-</p>
+		<p style="display:none">
+			Фильтр пользователей (через запятую, многострочно): <span class=new>(new!)</span><br>
+			<textarea id="user_blacklist" cols=100 rows=5></textarea>
+		</p>
+	</div>
 
-<h3>Опции Хабра</h3>
+	<div id="habr">
+		<h3>Опции Хабра</h3>
 
-<label for="move_posttime_down">
-  <input id="move_posttime_down" type="checkbox">
-  Копировать время статьи в нижнюю сводку 
-</label>
-<label for="move_stats_up">
-  <input id="move_stats_up" type="checkbox">
-  Копировать нижнюю сводку ближе к заголовку статьи
-</label>
-<label for="hide_comment_form_by_default">
-  <input id="hide_comment_form_by_default" type="checkbox">
-  Скрывать форму для комментариев по умолчанию
-</label>
-<label for="habr_fix_lines">
-  <input id="habr_fix_lines" type="checkbox">
-  Добавить линии на отступы в комментариях вместо точек
-</label>
-
-
+		<label for="move_posttime_down">
+			<input id="move_posttime_down" type="checkbox">
+			Копировать время статьи в нижнюю сводку 
+		</label>
+		<label for="move_stats_up">
+			<input id="move_stats_up" type="checkbox">
+			Копировать нижнюю сводку ближе к заголовку статьи
+		</label>
+		<label for="hide_comment_form_by_default">
+			<input id="hide_comment_form_by_default" type="checkbox">
+			Скрывать форму для комментариев по умолчанию
+		</label>
+		<label for="habr_fix_lines">
+			<input id="habr_fix_lines" type="checkbox">
+			Добавить линии на отступы в комментариях вместо точек
+		</label>
+	</div>
+</div>
 </body></html>

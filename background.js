@@ -1,6 +1,6 @@
 
 function clearString(str) {
-	return str.length < 13 ? str : (' ' + str).slice(1);
+	return str.length < 12 ? str : (' ' + str).slice(1);
 }
 
 function getURL(url,callback, on_fail) {
@@ -173,12 +173,18 @@ function parseTags(txt) {
 }
 
 function analyzeQuestion(question_id, now) {
-	if (tracker_q_ids[question_id]) return; //Нельзя.
+	if (question_id<10) return console.log("q_id too low:",question_id); //throw "q_id too low: "+question_id;
+	let add_e = tracker_q_ids[question_id] ? '?e='+Math.floor(Math.random()*6566811 + 1000000) : '';
 	if (!now) now = (new Date()).getTime();
-	let q = {is_pending:true, ut:now};
+	let q = {is_pending:true, ut:now, cnt_a:0};
+	let qq = db.question[question_id];
+	if (qq) {
+		if(qq.cnt_a) q.cnt_a = qq.cnt_a;
+		//q.user_id = db.question[question_id].user_id;
+	}
 	db.question[question_id] = q;
 	saveDB();
-	getURL('https://toster.ru/q/' + question_id, function(text) {
+	getURL('https://toster.ru/q/' + question_id + add_e, function(text) {
 		//get title
 		const index_title_str = '<h1 class="question__title" itemprop="name ">';
 		let index_title = text.indexOf(index_title_str);
@@ -221,6 +227,38 @@ function analyzeQuestion(question_id, now) {
 		else {
 			delete q.sb;
 		}
+		//count answers
+		if(localStorage.check_online && localStorage.is_widget){
+			q.cnt_a = (text.match(/class="answer__text/g)||[]).length;
+			let r_desc = /<a class="user-summary__avatar"/g;
+			let r_img = /(?:<img src="https:\/\/habrastorage\.org\/([^"]+)"|<(svg) class)/g;
+			let r_name = /<meta itemprop="alternateName" content="([^"]*)">/g;
+			let r_time = /(?:(.*?)<\/time>|<textarea )/g;
+			let m;
+			let u = {};
+			while (m=r_desc.exec(text)) {
+				r_img.lastIndex = r_desc.lastIndex;
+				if(!(m=r_img.exec(text))) {console.log('Error in img'); break;}
+				let o={};
+				if(m[1])o.img=clearString(m[1]);
+				r_name.lastIndex = r_img.lastIndex;
+				if(!(m=r_name.exec(text))) {console.log('Error in name'); break;}
+				let nick = clearString(m[1]);
+				o.nick=nick;
+				r_time.lastIndex = r_name.lastIndex;
+				if(!(m=r_time.exec(text))) {console.log('Error in time'); break;}
+				if(!m[1]) continue; //нашли textarea
+				o.time = getFreshTime(m[1].trim());
+				if(o.time>90)continue; //старики не нужны
+				if(!u[nick] || u[nick]&&u[nick].time>o.time)u[nick]=o;
+			}
+			for(let n in u){
+				//console.log('user:',u[n]);
+				onlineUserUpdate(n,now,u[n].img,u[n].time);
+			}
+		}
+		//check all users
+		
 	}, e=>{ delete q.is_pending; } );
 	return q;
 }
@@ -296,6 +334,70 @@ function checkCondition(cond, current_data) {
 	}
 }
 
+function makeInfo(now) {
+	now = now || (new Date()).getTime();
+	let info = {}; //всякая разна инфа. Например, кеш страницы.
+	if (now - cache_page_1_tm < 30000) {
+		info.cache_page_1_tm = cache_page_1_tm;
+		info.cache_page_1 = cache_page_1;
+	}
+	if (now - cache_my_feed_tm < 30000) {
+		info.cache_my_feed_tm = cache_my_feed_tm;
+		info.cache_my_feed = cache_my_feed;
+	}
+	if (localStorage.check_online == 1 && save_current_user && localStorage.is_widget) {
+		info.users = onlineUsersArr();
+		if(now-last_check_online > 50000) {
+			info.need_check=1;
+			last_check_online=now;
+		}
+		if(now-last_vote_online > 60000 && online_like && save_current_user) {
+			if(online_like[save_current_user]) info.need_vote=2;
+			else info.need_vote=1;
+			last_vote_online=now;
+		}
+	}
+	return info;
+}
+
+let online = {}, last_check_online=0, online_like,last_vote_online=0;
+function onlineUserUpdate(nick,now,img,tm){ //console.log('+nick',nick,tm);
+	tm=tm||0;
+	online[nick]=online[nick]||{};
+	online[nick].ut=now-tm*60000;
+	if(img){
+		online[nick].img=img;
+		if(db.user[nick])db.user[nick].img = img;
+	}
+	if(!online[nick].img && db.user[nick] && db.user[nick].img){
+		online[nick].img = db.user[nick].img;
+	}
+}
+function onlineClean(){
+	let now = (new Date()).getTime();
+	for(let nick in online){
+		if (now - online[nick].ut > 7 * 60000) delete online[nick];
+	}
+}
+let last_onl=0;
+function onlineUsersArr(){
+	onlineClean();
+	let users=[];
+	for(let nick in online){
+		let o = online[nick];
+		users.push({
+			nick:nick,
+			img:o.img,
+			ut:o.ut,
+		});
+	}
+	users.sort((a,b) => (a.ut > b.ut) ? -1 : ((b.ut > a.ut) ? 1 : 0));
+	//if (last_onl!=users.length){
+		//console.log(users);
+		//last_onl=users.length;
+	//}
+	return users;
+}
 
 let c_kick_truba;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
@@ -303,6 +405,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if (request.type == "getQuestions") {
 		let a = {};
 		let now = (new Date()).getTime();
+		//console.log('getQuestions:',request.arr);
 		request.arr.forEach(data=>{
 			let q_id = data.id-0;
 			let question = db.question[q_id];
@@ -344,6 +447,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			}
 		});
 		sendResponse(a);
+	} else if (request.type == "getInfo") {
+		sendResponse(makeInfo());
 	} else if (request.type == "getUsers") {
 		let u = {};
 		for(let nickname in request.arr) {
@@ -359,7 +464,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		}
 		sendResponse(u);
 	} else if (request.type == "getOptions") {
+		let now = (new Date()).getTime();
 		let options = {};
+		if (!versionUpdated) updateVersion();
+		if (now - versionUpdated < 86400000 && localStorage.is_widget) options.is_new=true;
+		let q = request.q;
+		if (q) {
+			if (tracker_q_ids[q.id]) delete tracker_q_ids[q.id];
+		}
 		TOSTER_OPTIONS.forEach((opt)=>{
 			options[opt] = parseFloat(localStorage[opt]) || 0;
 		});
@@ -374,12 +486,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		}
 		sendResponse(options);
 	} else if (request.type == "getNotifications") {
-		let no_comments = request.nc;
+		let is_active = request.active;
 		let now = (new Date()).getTime();
-		if (no_comments) notifications_pause = now;
+		if (is_active && localStorage.notify_if_inactive==1) notifications_pause = now;
 		let el_hash = {	hash:events_list_navbar_hash };
+		let info = makeInfo(now); //всякая разна инфа. Например, кеш страницы.
 		if (now - notifications_pause < 30000) { //Выдерживаем паузу.
-			sendResponse({1:el_hash}); //Но не обнуляем
+			sendResponse({1:el_hash,2:info}); //Но не обнуляем
 			return;
 		}
 		if (now - tm_browser_load < 40000) { //После загрузки расширения не паникуем, не спамим, молчим.
@@ -403,8 +516,28 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		}
 		//console.log('Отправляем уведомления:',Object.keys(arr_notifications).length);
 		arr_notifications[1] = el_hash;
+		arr_notifications[2] = info;
 		sendResponse(arr_notifications);
 		arr_notifications = {};
+	} else if (request.type == "checkOnline") { //get info from page
+		let now = (new Date()).getTime();
+		last_check_online = now;
+		let obj = request.obj;
+		if (online_like) { //compare
+			for(let nick in online_like) {
+				if(obj[nick]){ //удаляем, кто совпал
+					//delete obj[nick];
+					//online_like[nick].ut = now;
+				} else { //удалился
+					onlineUserUpdate(nick,now,online_like[nick].img);
+				}
+			}
+			for(let nick in obj) {
+				if(online_like[nick]); //online_like[nick].ut = now;
+				else onlineUserUpdate(nick,now,obj[nick].img);
+			}
+		}
+		online_like = obj;
 	} else if (request.type == "disableNotifications") {
 		localStorage.enable_notifications = 0;
 	} else if (request.type == "updateIconNum") {
@@ -449,6 +582,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			html:events_list_navbar,
 			hash:events_list_navbar_hash,
 		});
+	} else if (request.type == 'Reload') {
+		chrome.runtime.reload();
 	}
 });
 
@@ -457,18 +592,20 @@ let TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
-	'make_dark', 'enable_notifications', 'notify_if_inactive',
+	'make_dark', 'enable_notifications', //'notify_if_inactive',
 	//'always_notify_my_questions', 'notify_about_likes', 'notify_about_solutions',
 	'datetime_replace', 'datetime_days', 'show_blue_circle', 'notify_all',
 	'aside_right_noads', 'aside_right_hide',
 	'show_my_questions', 'show_my_answers', 'minify_curator', 'remove_te_spam',
+	'is_widget', 'top24_show', 'check_online', 'is_search', 'is_options_button', 'is_debug',
+	'minify_names',
 ];
 
 let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.notify_my_feed === undefined) { //last added option
+if (localStorage.is_widget === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -479,7 +616,7 @@ if (localStorage.notify_my_feed === undefined) { //last added option
 	if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
 	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=0;
 	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
-	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=1;
+	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=0;
 	if (localStorage.hide_solutions === undefined) localStorage.hide_solutions=0;
 	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
 	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
@@ -500,6 +637,10 @@ if (localStorage.notify_my_feed === undefined) { //last added option
 	if (localStorage.notify_expert === undefined) localStorage.notify_expert=1;
 	if (localStorage.notify_answer_comment === undefined) localStorage.notify_answer_comment=0;
 	if (localStorage.notify_changes === undefined) localStorage.notify_changes=0;
+	if (localStorage.is_widget === undefined) localStorage.is_widget=1;
+	if (localStorage.is_options_button === undefined) localStorage.is_options_button=1;
+	if (localStorage.is_search === undefined) localStorage.is_search=1;
+	if (localStorage.top24_show === undefined) localStorage.top24_show=1;
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
@@ -517,7 +658,7 @@ function count_obj(obj) {
 
 // -------------- BLACKLIST -----------
 
-let db_tags_blacklist = {}
+let db_tags_blacklist = {} // [tag] = true
 function update_blacklist() {
 	db_tags_blacklist = {};
 	const lines = localStorage.tag_blacklist.split("\n");
@@ -528,6 +669,36 @@ function update_blacklist() {
 	}
 }
 if (localStorage.tag_blacklist) update_blacklist();
+
+// ----------- USER BLACK LIST ---------
+
+let db_user_blacklist = {}; // [user] = 'rule',
+function update_user_blacklist() {
+	db_user_blacklist = {};
+	let j,err;
+	const lines = localStorage.user_blacklist.split("\n");
+	for(let i=0;i<lines.length;i++) {
+		let line = lines[i].trim();
+		if (!line) continue;
+		let rule = -1; //hide - правило по умолчанию
+		if ((j=line.indexOf('=')) > -1) { //сложное правило
+			rule = line.substr(j+1).trim();
+			if (rule == 'hide') rule = -1;
+			else if (rule == 'ban') rule = -2;
+			else {
+				err = 'Line#'+(i+1)+' это не действие - '+rule;
+				continue;
+			}
+			line = line.substr(0,j).trim();
+		}
+		let arr = line.split(',');
+		arr.forEach(nick=>{
+			if (nick) db_user_blacklist[nick] = rule;
+		});
+	}
+	if(err)console.log('User Filter List:',err);
+}
+if (localStorage.user_blacklist) update_user_blacklist();
 
 // ------------ Дополнительные условия показа вопросов -------------
 
@@ -649,6 +820,7 @@ function getFreshTime(time_str) {
 	return FRESH_TIME[time_str] === undefined ? 99 : FRESH_TIME[time_str];
 }
 
+let cache_my_feed, cache_my_feed_tm=0;
 function updateNitificationsMyFeed(now) {
 	let xhr = new XMLHttpRequest();
 	const url = 'https://toster.ru/my/feed';
@@ -656,8 +828,16 @@ function updateNitificationsMyFeed(now) {
 	xhr.send();
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
+		if (localStorage.faster_my_feed == 1) {
+			let idx1 = xhr.response.indexOf('<div class="page">'); // 18 length
+			let idx2 = xhr.response.indexOf('<aside class="column_sidebar">');
+			if (idx1>-1 && idx2>-1) {
+				cache_my_feed = clearString(xhr.response.substring(idx1+18,idx2));
+				cache_my_feed_tm = now;
+			}
+		}
 		function checkQuestion(q_id) {
-			if (tracker_q_ids[q_id]) return;
+			//if (tracker_q_ids[q_id]) return;
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
 			if (save_current_user && save_current_user == q.user_id) return;
@@ -687,7 +867,7 @@ function updateNitificationsMyFeed(now) {
 			}
 			notify_feed_arr[q_id]=1;
 		}
-		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)/g;
+		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
 		let m;
 		let arr=[];
 		while (m = r.exec(xhr.response)) {
@@ -696,6 +876,7 @@ function updateNitificationsMyFeed(now) {
 			let title = clearString(m[2].trim());
 			let date = m[3].trim();
 			let views = m[4]-0;
+			let answers = m[5]-0;
 			if (getFreshTime(date) > 10) continue;
 			let q = db.question[q_id];
 			if (!q) {
@@ -716,16 +897,25 @@ function updateNitificationsMyFeed(now) {
 	}
 }
 
+let cache_page_1, cache_page_1_tm=0; //страница и время загрузки
 function updateNitificationsFilterAll(now) {
-	if (db_conditions_notify_cnt == 0) return; //Нет правил, нет смысла проверять.
+	//if (db_conditions_notify_cnt == 0) return; //Нет правил, нет смысла проверять.
 	let xhr = new XMLHttpRequest();
 	const url = 'https://toster.ru/questions';
 	xhr.open('GET', url, true);
 	xhr.send();
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
+		if (localStorage.faster_page_1 == 1) {
+			let idx1 = xhr.response.indexOf('<div class="page">'); // 18 length
+			let idx2 = xhr.response.indexOf('<aside class="column_sidebar">');
+			if (idx1>-1 && idx2>-1) {
+				cache_page_1 = clearString(xhr.response.substring(idx1+18,idx2));
+				cache_page_1_tm = now;
+			}
+		}
 		function checkQuestion(q_id) {
-			if (tracker_q_ids[q_id]) return; //В трекере уведомлений. Нельзя заходить.
+			//if (tracker_q_ids[q_id]) return; //В трекере уведомлений. Нельзя заходить.
 			if (notify_feed_arr[q_id] || arr_notifications[q_id]) return;
 			let q = db.question[q_id];
 			if (q.is_pending) return;
@@ -753,20 +943,23 @@ function updateNitificationsFilterAll(now) {
 					q_id:q_id,
 					title:q.t,
 					//e:1,
-					w:'Новый интересный вопрос',
+					w:'Интересный вопрос',
 				}
 				notify_feed_arr[q_id]=1;
 				return;
 			}
 		}
-		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)/g;
+		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
 		let m;
 		let arr=[];
+		let online=localStorage.check_online && localStorage.is_widget;
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
 			let title = clearString(m[2].trim());
 			let date = m[3].trim();
 			let views = m[4]-0;
+			let answers = m[5]-0;
+			arr.push(1);
 			/*arr.push({
 				id:q_id,
 				is_q:!!db.question[q_id],
@@ -775,23 +968,26 @@ function updateNitificationsFilterAll(now) {
 				date:clearString(date),
 				q:db.question[q_id],
 			});*/
-			if (getFreshTime(date) > 10) continue;
 			let q = db.question[q_id];
-			if (!q) {
+			if (!q || online && answers>0 && (!q.cnt_a||q.cnt_a<answers)) {
 				q = analyzeQuestion(q_id);
 				q.t = title;
-				setTimeout(()=>{
-					checkQuestion(q_id);
-				},4500);
-				continue;
+				if (getFreshTime(date) <= 10) {
+					setTimeout(()=>{
+						checkQuestion(q_id);
+					},4500);
+				}
+				//console.log('+'+(answers-q.cnt_a)+' ответа:',title);
 			}
+			q.cnt_a = answers;
 			q.v = views;
 			q.ut = now;
+			if (getFreshTime(date) > 10) continue;
 			checkQuestion(q_id);
 		}
 		freeRegExp();
 		clearNotifyFeedArr(now);
-		//console.log('Новые вопросы:',arr);
+		//console.log('Новые вопросы:',arr.length);
 	}
 }
 
@@ -907,13 +1103,11 @@ function updateNotificationOptions() {
 					let Q_title = m[2].trim(); //console.log('Title:',Q_title);
 					let ul = m[3];
 					let q = db.question[Q_id];
-					if (!q) { //q = analyzeQuestion(Q_id, now);
-						q = {
-							t: Q_title,
-							ut: now,
-						};
-						db.question[Q_it] = q;
-					}
+					if (!q) {
+						if (!Q_id) console.warn('Q_id=',Q_id,'html:',html);
+						q = analyzeQuestion(Q_id, now);
+						q.t = Q_title;
+					} else q.ut = now;
 					let renamed, noticed;
 					if (!q.t || q.t.replace('«','"').replace('»','"').replace('—','-') != Q_title) {
 						//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
@@ -1004,7 +1198,9 @@ function updateNotificationOptions() {
 							if (message.indexOf('написал') > -1) {
 								//написал \n <a href="https://toster.ru/q/621216?e=7482397#comment_1877510">комментарий</a> \n к&nbsp;ответу на&nbsp;вопрос
 								if (!must_notify && !(localStorage.notify_answer_comment==1)) continue;
-								if (what == 'комментарий' || what=='ответ') what = 'Новый '+what;
+								if (what == 'комментарий') what = 'Комментарий';
+								else if (what=='ответ') what = 'Ответ';
+								else what = 'Новый опус';
 							} else if (message.indexOf('отметил решением') > -1) {
 								if (!must_notify && !(localStorage.notify_about_solutions==1)) continue;
 								if (what == 'ответ' || what == 'ваш ответ') what = 'Выбрано решение';
@@ -1155,4 +1351,48 @@ function updateDateTimeDays(val) { //callback function from options
 	let temp = parseFloat(val);
 	if (temp !== temp) temp = 0;
 	localStorage.datetime_days = temp;
+}
+
+//-------- version manage -------
+let myVersion = chrome.runtime.getManifest().version, versionUpdated;
+function updateVersion() { //Вызываем только если пользователь открыл сайт
+	if (myVersion!==localStorage.version) {
+		localStorage.version = myVersion;
+		versionUpdated = (new Date()).getTime();
+		localStorage.versionUpdated = versionUpdated;
+	} else versionUpdated = localStorage.versionUpdated - 0;
+}
+
+//---------- rest ----------
+
+function test_like()
+{
+	let xhr = new XMLHttpRequest();
+	let url = 'https://toster.ru/answer/like?answer_id=56';
+	xhr.open('POST', url, true);
+	xhr.send();
+	xhr.onload = function() {
+		console.log(xhr.status,xhr.responseText);
+	}
+}
+function test_unlike()
+{
+	let xhr = new XMLHttpRequest();
+	let url = 'https://toster.ru/answer/cancel_like?answer_id=1384993';
+	xhr.open('POST', url, true);
+	xhr.send('');
+	xhr.onload = function() {
+		console.log(xhr.status,xhr.responseText);
+	}
+}
+//https://toster.ru/q/567899
+function test_post()
+{
+	let xhr = new XMLHttpRequest();
+	let url = 'https://toster.ru/answer/likers_list?answer_id=56';
+	xhr.open('POST', url, true);
+	xhr.send('');
+	xhr.onload = function() {
+		console.log(xhr.status,xhr.responseText);
+	}
 }

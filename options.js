@@ -7,36 +7,59 @@ function init_checkbox(name,options) {
 	e.addEventListener("change", (e) => {
 		background.localStorage[name] = e.target.checked?1:0;
 		if (options && options.update) background[options.update](e.target.value);
-		if (options && options.update_fn) options.update_fn(); //e.target?
+		if (options && options.update_fn) options.update_fn(e.target); //e.target?
 	});
 	if (!options) return e;
-	if (options.master || options.antimaster) { //Более главная галка должна быть активна, чтобы эта имела смысл
+	if (options.master || options.antimaster || options.master2) { //Более главная галка должна быть активна, чтобы эта имела смысл
 		let master = options.master && document.getElementById(options.master);
+		let master2 = options.master2 && document.getElementById(options.master2);
 		let antimaster = options.antimaster && document.getElementById(options.antimaster);
 		let disabled = false;
 		function updateCheckbox() {
-			let status_disabled = master && (!master.checked) // || master.disabled)
-				|| antimaster && antimaster.checked; // && !antimaster.disabled;
+			let status_disabled = master && (!master.checked || master.disabled)
+				|| master2 && (!master2.checked || master2.disabled)
+				|| antimaster && antimaster.checked; // !antimaster.disabled;
 			if (status_disabled == disabled) return;
 			e.disabled = status_disabled;
 			disabled = status_disabled;
 			e.parentNode.className = disabled ? "disabled" : ""; //update color if element is disabled or not
+			if(e.chili) e.chili.forEach(e=>e.updateCheckbox());
 		}
 		if (master &&(!master.checked || master.disabled)) e.disabled = true;
+		if (master2 &&(!master2.checked || master2.disabled)) e.disabled = true;
 		updateCheckbox();
 		setTimeout(updateCheckbox,0);
-		if (master) master.addEventListener("change", updateCheckbox);
-		if (antimaster) antimaster.addEventListener("change", updateCheckbox);
+		e.updateCheckbox=updateCheckbox;
+		if (master) {
+			master.addEventListener("change", updateCheckbox);
+			master.chili=master.chili||[];
+			master.chili.push(e);
+		}
+		if (master2) {
+			master2.addEventListener("change", updateCheckbox);
+			master2.chili=master2.chili||[];
+			master2.chili.push(e);
+		}
+		if (antimaster) {
+			antimaster.addEventListener("change", updateCheckbox);
+			antimaster.chili=antimaster.chili||[];
+			antimaster.chili.push(e);
+		}
 	}
 	return e;
 }
 
-let textarea_blacklist, blacklist, textarea_conditions, condlist;
-function update_options() {
+let textarea_blacklist, blacklist, textarea_conditions, condlist, textarea_userlist, userlist;
+function update_options() { console.log('update');
 	if (textarea_blacklist.value != blacklist) {
 		blacklist = textarea_blacklist.value;
 		background.localStorage.tag_blacklist = blacklist;
 		background.update_blacklist();
+	}
+	if (textarea_userlist.value != userlist) {
+		userlist = textarea_userlist.value;
+		background.localStorage.user_blacklist = userlist;
+		background.update_user_blacklist();
 	}
 	if (textarea_conditions.value != condlist) {
 		condlist = textarea_conditions.value;
@@ -87,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("cut_karma");
 	init_checkbox("hide_sol_button");
 	init_checkbox("swap_buttons");
+	init_checkbox("minify_names");
 	init_checkbox("show_habr");
 	init_checkbox("hide_word_karma");
 	init_checkbox("show_name");
@@ -95,8 +119,14 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_offered_services",{antimaster:'aside_right_noads'});
 	init_checkbox("aside_right_noads");
 	init_checkbox("aside_right_hide");
-	init_checkbox("top24_show_tags",{antimaster:'aside_right_hide'});
-	init_checkbox("top24_show_author",{antimaster:'aside_right_hide'});
+	init_checkbox("top24_show",{antimaster:'aside_right_hide'});
+	init_checkbox("top24_show_tags",{antimaster:'aside_right_hide',master:'top24_show'});
+	init_checkbox("top24_show_author",{antimaster:'aside_right_hide',master:'top24_show'});
+	init_checkbox("is_widget",{antimaster:'aside_right_hide'});
+	init_checkbox("is_debug",{master:'is_widget'});
+	init_checkbox("is_options_button",{master:'is_widget'});
+	init_checkbox("is_search",{master:'is_widget'});
+	init_checkbox("check_online",{master:'is_widget',master2:'enable_notifications'});
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");
@@ -120,11 +150,13 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("notify_moderator",{master:"enable_notifications",antimaster:"notify_all"});
 	init_checkbox("notify_changes",{master:"enable_notifications",antimaster:"notify_all"});
 	init_checkbox("notify_my_feed",{master:"enable_notifications",antimaster:"enable_notify_action"});
+	init_checkbox("faster_my_feed",{master:'notify_my_feed'});
 	init_checkbox("enable_notify_action",{master:"enable_notifications",antimaster:"notify_my_feed",update_fn:e=>{
 		let notify_cnt = background.update_conditions();
 		checkNotifyCnt(notify_cnt);
 		cond_error.innerHTML = background.cond_update_error_string;
 	}});
+	init_checkbox("faster_page_1",{master:'enable_notify_action'});
 	setTimeout(()=>checkNotifyCnt(background.getDbCondLength()),300);
 	init_checkbox("show_my_questions");
 	init_checkbox("show_my_answers");
@@ -146,6 +178,12 @@ document.addEventListener('DOMContentLoaded', function () {
 		textarea_blacklist.value = blacklist;
 	}
 
+	textarea_userlist = document.getElementById('user_blacklist');
+	if (background.localStorage.user_blacklist) {
+		userlist = background.localStorage.user_blacklist;
+		textarea_userlist.value = userlist;
+	}
+	
 	textarea_conditions = document.getElementById('all_conditions');
 	if (background.localStorage.all_conditions) {
 		condlist = background.localStorage.all_conditions;
@@ -156,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	setInterval(onLazyUpdate, 1000);
 	textarea_conditions.addEventListener('keydown',()=>setTimeout(checkConditionSyntax,0));
 	textarea_conditions.addEventListener('input',checkConditionSyntax); //for cut/paste and moves of text by mouse
-	
+
 	//makeLined(textarea_conditions);
 
 	//Habr
@@ -168,3 +206,66 @@ document.addEventListener('DOMContentLoaded', function () {
 	window.onblur = update_options;
 });
 
+//------------------------ TABS ----------------
+
+let tab; // заголовок вкладки
+let tabContent; // блок содержащий контент вкладки
+
+function hideTabsContent(a) {
+	for (var i=a; i<tabContent.length; i++) {
+		tabContent[i].classList.remove('show');
+		tabContent[i].classList.add("hide");
+		tab[i].classList.remove('whiteborder');
+	}
+}
+
+function showTabsContent(b){
+	if (tabContent[b].classList.contains('hide')) {
+		hideTabsContent(0);
+		tab[b].classList.add('whiteborder');
+		tabContent[b].classList.remove('hide');
+		tabContent[b].classList.add('show');
+	}
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+	tabContent=document.getElementsByClassName('tabContent');
+	tab=document.getElementsByClassName('tab');
+	hideTabsContent(1);
+	
+	document.getElementById('tabs').onclick= function (event) {
+		let target=event.target;
+		if (target.className=='tab') {
+			for (var i=0; i<tab.length; i++) {
+				if (target == tab[i]) {
+					showTabsContent(i);
+					background.localStorage.tab_num = i;
+					break;
+	}}}}	
+	
+	let tabs = document.getElementById('tabs');
+	let open = document.getElementById('open');
+	function updateTabs(bool) {
+		if (!background.localStorage.tab_num) background.localStorage.tab_num=2;
+		if (bool) {
+			for(let i=tab.length-1;i>=0;i--) {
+				tabContent[i].appendChild(open.children[i]);
+			}
+			tabs.style.display = '';
+			open.style.display = 'none';
+			showTabsContent(background.localStorage.tab_num);
+		} else {
+			for(let i=0;i<tab.length;i++) {
+				open.appendChild(tabContent[i].children[0]);
+			}
+			tabs.style.display = 'none';
+			open.style.display = '';
+		}
+		background.localStorage.options_tabs = bool?1:0;
+	}
+	if (background.localStorage.options_tabs==1) updateTabs(true);
+	else tabs.style.display = 'none';
+	init_checkbox('options_tabs',{update_fn:e=>{
+		updateTabs(e.checked);
+	}});
+});
