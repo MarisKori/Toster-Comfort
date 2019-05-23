@@ -796,6 +796,10 @@ function AsideRightFilters() {
 		if(OPTIONS.check_online){
 			div_online=add().a('div',0,'online_box');
 		}
+		if(OPTIONS.read_q && Q) add().a('a','Очистить уведомления',{href:'#'}).addEventListener('click',e=>{
+			chrome.runtime.sendMessage({type:'clearQuestion',q_id:Q});
+			e.preventDefault()
+		});
 		aside.insertBefore(widget,aside.children[0]);
 	} else {
 		OPTIONS.check_online=0;
@@ -814,6 +818,7 @@ function AsideMenu() {
 			parse_questions();
 			g_status='all';
 			e.preventDefault();
+			document.body.scrollTop = document.documentElement.scrollTop = 0;
 		}
 	});
 	if(mainmenu.myfeed) mainmenu.myfeed.a.addEventListener('click',e=>{
@@ -825,6 +830,7 @@ function AsideMenu() {
 			parse_questions();
 			g_status='feed';
 			e.preventDefault();
+			document.body.scrollTop = document.documentElement.scrollTop = 0;
 		}
 	});
 	//ниже старый код, не трогаем

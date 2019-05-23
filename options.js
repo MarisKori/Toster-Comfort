@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("is_debug",{master:'is_widget'});
 	init_checkbox("is_options_button",{master:'is_widget'});
 	init_checkbox("is_search",{master:'is_widget'});
-	init_checkbox("check_online",{master:'is_widget',master2:'enable_notifications'});
+	init_checkbox("read_q",{master:'is_widget'});
+	init_checkbox("check_online",{master:'is_widget',master2:'faster_page_1'});
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
 	init_checkbox("make_dark");

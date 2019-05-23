@@ -172,9 +172,10 @@ function parseTags(txt) {
 	return tags;
 }
 
-function analyzeQuestion(question_id, now) {
+//todo: удалить tracker_q_ids
+function analyzeQuestion(question_id, now, is_fresh) {
 	if (question_id<10) return console.log("q_id too low:",question_id); //throw "q_id too low: "+question_id;
-	let add_e = tracker_q_ids[question_id] ? '?e='+Math.floor(Math.random()*6566811 + 1000000) : '';
+	let add_e = !is_fresh ? '?e='+Math.floor(Math.random()*6566811 + 1000000) : '';
 	if (!now) now = (new Date()).getTime();
 	let q = {is_pending:true, ut:now, cnt_a:0};
 	let qq = db.question[question_id];
@@ -228,7 +229,7 @@ function analyzeQuestion(question_id, now) {
 			delete q.sb;
 		}
 		//count answers
-		if(localStorage.check_online && localStorage.is_widget){
+		if(localStorage.check_online==1 && localStorage.is_widget==1 && localStorage.enable_notify_action==1 && localStorage.enable_notifications==1){
 			q.cnt_a = (text.match(/class="answer__text/g)||[]).length;
 			let r_desc = /<a class="user-summary__avatar"/g;
 			let r_img = /(?:<img src="https:\/\/habrastorage\.org\/([^"]+)"|<(svg) class)/g;
@@ -345,7 +346,9 @@ function makeInfo(now) {
 		info.cache_my_feed_tm = cache_my_feed_tm;
 		info.cache_my_feed = cache_my_feed;
 	}
-	if (localStorage.check_online == 1 && save_current_user && localStorage.is_widget) {
+	if (localStorage.check_online == 1 && save_current_user && localStorage.is_widget==1
+		&& localStorage.enable_notify_action==1 && localStorage.enable_notifications==1)
+	{
 		info.users = onlineUsersArr();
 		if(now-last_check_online > 50000) {
 			info.need_check=1;
@@ -475,6 +478,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		TOSTER_OPTIONS.forEach((opt)=>{
 			options[opt] = parseFloat(localStorage[opt]) || 0;
 		});
+		if(options.check_online){
+			options.check_online = localStorage.enable_notify_action==1 && options.enable_notifications && options.is_widget;
+		}
 		sendResponse(options);
 	} else if (request.type == "getOptionsHabr") {
 		let options = {};
@@ -582,6 +588,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			html:events_list_navbar,
 			hash:events_list_navbar_hash,
 		});
+	} else if (request.type == 'clearQuestion') {
+		analyzeQuestion(request.q_id, 0, true);
 	} else if (request.type == 'Reload') {
 		chrome.runtime.reload();
 	}
@@ -598,14 +606,14 @@ let TOSTER_OPTIONS = [
 	'aside_right_noads', 'aside_right_hide',
 	'show_my_questions', 'show_my_answers', 'minify_curator', 'remove_te_spam',
 	'is_widget', 'top24_show', 'check_online', 'is_search', 'is_options_button', 'is_debug',
-	'minify_names',
+	'minify_names', 'read_q',
 ];
 
 let HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.is_widget === undefined) { //last added option
+if (localStorage.read_q === undefined) { //last added option
 	//Toster options
 	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
 	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
@@ -641,6 +649,7 @@ if (localStorage.is_widget === undefined) { //last added option
 	if (localStorage.is_options_button === undefined) localStorage.is_options_button=1;
 	if (localStorage.is_search === undefined) localStorage.is_search=1;
 	if (localStorage.top24_show === undefined) localStorage.top24_show=1;
+	if (localStorage.read_q === undefined) localStorage.read_q=1;
 	//Habr options
 	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
 	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
@@ -1109,9 +1118,10 @@ function updateNotificationOptions() {
 						q.t = Q_title;
 					} else q.ut = now;
 					let renamed, noticed;
-					if (!q.t || q.t.replace('«','"').replace('»','"').replace('—','-') != Q_title) {
+					if (!q.t || q.t != Q_title && q.t.replace('«','"').replace('»','"').replace('—','-').replace('>','&gt;') != Q_title) {
 						//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
 						renamed = !!q.t;
+						console.log('Rename:',q.t,Q_title);
 						q.t = clearString(Q_title); //Быстрый синхронный title
 						saveDB();
 					}
