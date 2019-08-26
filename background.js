@@ -26,9 +26,11 @@ function getURL(url,callback, on_fail) {
 	xhr.send();
 }
 
+const DAY_TIME = 24*60*60*1000;
+
 const db_clean_steps = [7, 3, 2, 1, 0.5, 0.2];
 function clean_db(timeout_days) {
-	const timeout = timeout_days *24*60*60*1000;
+	const timeout = timeout_days * DAY_TIME;
 	//remove pending status
 	for(let id in db.user) {
 		if (!db.user[id]) {
@@ -118,11 +120,13 @@ function updateUser(nickname,timeout) {
 			if (!sum) user.solutions = '0';
 			else user.solutions = Math.floor( cnt / sum * 100);
 			//stats
-			a = text.match(/<li class="inline-list__item inline-list__item_bordered">[\s\S]*<meta itemprop="interactionCount"[\s\S]*<div class="mini-counter__count">(\d+)[\s\S]*<div class="mini-counter__count">(\d+)[\s\S]*<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
+			a = text.match(/<a href="\/help\/rating" class="mini-counter__rating">[\s\S]*?(\d+)[\s]*<\/a>[\s\S]*?<li class="inline-list__item inline-list__item_bordered">[\s\S]*?<meta itemprop="interactionCount"[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
 			if (a) {
-				user.cnt_q = a[1]-0; //questions
-				user.cnt_a = a[2]-0; //answers
-				user.cnt_s = a[3]-0; //perc solutions
+				let contribution = a[1]-0; //вклад
+				if (contribution > 0) user.con = contribution;
+				user.cnt_q = a[2]-0; //questions
+				user.cnt_a = a[3]-0; //answers
+				user.cnt_s = a[4]-0; //perc solutions
 			} else console.log("Stats not found, user:",nickname);
 		});
 	}
@@ -306,13 +310,14 @@ function checkCondition(cond, current_data) {
 		env = {
 			questions: current_data.u.cnt_q || 999,
 			answers: current_data.u.cnt_a || 999,
-			solutions: current_data.u.solutions || 100,
+			solutions: current_data.u.solutions || 101,
 			karma: current_data.u.karma || 0,
 			comments: current_data.u.stat_comment || 0,
 			articles: current_data.u.stat_pub || 0,
 			nickname: current_data.u.nickname || '',
 			title: current_data.q.t || '', //текст вопроса
 			views: current_data.q.v || 0,
+			honor: current_data.q.con || -1,
 		}
 		env.q = env.questions;
 		env.a = env.answers;
@@ -325,6 +330,7 @@ function checkCondition(cond, current_data) {
 		env.n = env.nick;
 		env.t = env.title;
 		env.v = env.views;
+		env.h = env.honor;
 	} else env = current_data;
 	try {
 		return eval.lite(cond, env);
@@ -402,6 +408,66 @@ function onlineUsersArr(){
 	return users;
 }
 
+//Кэш тегов, которые интересны пользователю. Живет до перезагрузки, но не более суток.
+let userTagsCache = {}; 
+function updateUserTagsCache(nick) {
+	let cache = userTagsCache[nick];
+	if (!cache) {
+		cache = {ut:0, data:{cnt:-1}};
+		userTagsCache[nick] = cache;
+	}
+	if (cache.is_pending) return;
+	cache.is_pending = true;
+	let data = cache.data;
+	getURL('https://toster.ru/user/'+nick+'/tags', html=>{ //onSuccess
+		cache.is_pending = false;
+		let html_cards = html.match(/<article class="card"[\s\S]*?<\/article>/g);
+		if (!html_cards) {
+			data.cnt = 0;
+			data.tags = [];
+			return;
+		}
+		//Фасуем теги
+		let tags = [];
+		html_cards.forEach(h=>{
+			//<a class="card__head-image card__head-image_tag" href="https://toster.ru/tag/тестирование-по">
+      //        <img class="tag__image tag__image_bg" src="https://habrastorage.org/r/w120/files/4d0/738/fc1/4d0738fc1d9b4e0b8818bea5ac8a4923.png" alt="тестирование-по">
+      //</a>
+			let m = h.match(/<meta itemprop="name" content="([^"]*)">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) answers">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) contribute">/);
+			if(!m)return console.log("Can't read tag card.");
+			let tag = {
+				name: clearString(m[1]),
+				cnt_a: m[2]-0,
+				honor: m[3]-0,
+			};
+			if (tag.honor === 0) return;
+			tags.push(tag);
+		});
+		console.log(tags.length);
+		//Отбираем значимые теги. Это те, которые до крутого излома.
+		let ratio = [];
+		for(let i=0;i<tags.length-2;i++){
+			let tag1 = tags[i];
+			let tag2 = tags[i+1];
+			ratio[i] = (tag1.honor / tag2.honor) * ((i+2) / (i+3));
+		}
+		//Поправки на ветер.
+		let maxtag = Math.min(tags.length-1, 5);
+		for(let i=maxtag-1; i>=0; i--) {
+			if (ratio[i] > ratio[maxtag]) maxtag = i;
+		}
+		console.log(maxtag,ratio);
+		//if (maxtag < 0) tags=[];
+		//else tags.splice(maxtag+1);
+		data.tags = tags;
+		data.cnt = maxtag+1; //tags.length;
+		console.log(data)
+		cache.ut = (new Date()).getTime();
+	}, ()=>{ //onFail
+		cache.is_pending = false;
+	});
+}
+
 let c_kick_truba;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if(!db) reset_db(); //imppossible. for debugging
@@ -450,14 +516,47 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			}
 		});
 		sendResponse(a);
+	} else if (request.type == "analyzeUserTags") {
+		let data = userTagsCache[request.nickname];
+		if (data && data.ut + DAY_TIME > (new Date()).getTime() ) data = data.data;
+		else {
+			updateUserTagsCache(request.nickname);
+			data = {cnt:-1};
+		}
+		sendResponse(data);
 	} else if (request.type == "getInfo") {
 		sendResponse(makeInfo());
+	} else if (request.type == "getHints") {
+		let data = {}
+		request.nicknames.forEach(n=>{
+			if (CHARACTERS[n]) data[n]=CHARACTERS[n];
+		});
+		sendResponse(data);
 	} else if (request.type == "getUsers") {
+		let is_hint = localStorage.show_psycho == 1;
 		let u = {};
+		//console.log('getUsers',request.arr);
 		for(let nickname in request.arr) {
+			if (db_user_blacklist[nickname]) {
+				u[nickname] = {ban:1};
+				continue;
+			}
 			let user = db.user[nickname];
 			if (user) {
 				u[nickname] = user;
+				if (is_hint && CHARACTERS[nickname]) {
+					user = Object.assign({},user,CHARACTERS[nickname]);
+					u[nickname] = user;
+				}
+				let is_achiever = user.cnt_s > 49 && user.cnt_a > 9 || ACHIEVERS[nickname];
+				if (is_achiever && localStorage.show_status_achiever == 1 && !(user.hint && localStorage.show_psycho_over_achiever == 1)) {
+					if (ACHIEVERS[nickname]) is_achiever = 3;
+					else if (user.cnt_s > 89) is_achiever = 2;
+					else is_achiever = 1;
+					user = Object.assign({},user); //TODO: Это какие-то костыли. Нужно переделать по уму.
+					user.ach = is_achiever;
+					u[nickname] = user;
+				}
 			}
 			if (request.arr[nickname] === 1) {
 				//console.log('Fast update:',nickname);
@@ -596,7 +695,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 
-let TOSTER_OPTIONS = [
+const TOSTER_OPTIONS = [
 	'swap_buttons', 'hide_sol_button', 'show_habr', 'hide_word_karma',
 	'show_name', 'show_nickname', 'hide_offered_services', 'use_ctrl_enter',
 	'top24_show_tags', 'top24_show_author', 'hide_solutions', 'save_form_to_storage',
@@ -607,54 +706,33 @@ let TOSTER_OPTIONS = [
 	'show_my_questions', 'show_my_answers', 'minify_curator', 'remove_te_spam',
 	'is_widget', 'top24_show', 'check_online', 'is_search', 'is_options_button', 'is_debug',
 	'minify_names', 'read_q',
+	'show_my_comments','show_my_likes','show_my_tags',
+	'hidemenu_all_tags','hidemenu_all_users','hidemenu_all_notifications',
+	//'show_psycho', //local
+	'psycho_replace', 'psycho_not_myself', 'achiever_replace',
+	'psycho_hide_comments', 'psycho_hide_same_author','achiever_hide_comments','achiever_hide_same_author','achiever_hide_next','psycho_hide_next',
+	'show_cnt_questions','show_cnt_answers','show_perc_solutions','show_perc_sol_marks',
+	'show_ban_info','dont_ban_solutions',
+	'show_psycho','show_honor','sol_honor_replace','psycho_summary','psycho_tags',
 ];
 
-let HABR_OPTIONS = [
+const HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.read_q === undefined) { //last added option
-	//Toster options
-	if (localStorage.swap_buttons === undefined) localStorage.swap_buttons=0;
-	if (localStorage.hide_sol_button === undefined) localStorage.hide_sol_button=0;
-	if (localStorage.show_habr === undefined) localStorage.show_habr=1;
-	if (localStorage.hide_word_karma === undefined) localStorage.hide_word_karma=0;
-	if (localStorage.show_name === undefined) localStorage.show_name=0;
-	if (localStorage.show_nickname === undefined) localStorage.show_nickname=1;
-	if (localStorage.hide_offered_services === undefined) localStorage.hide_offered_services=0;
-	if (localStorage.use_ctrl_enter === undefined) localStorage.use_ctrl_enter=0;
-	if (localStorage.top24_show_tags === undefined) localStorage.top24_show_tags=0;
-	if (localStorage.top24_show_author === undefined) localStorage.top24_show_author=0;
-	if (localStorage.hide_solutions === undefined) localStorage.hide_solutions=0;
-	if (localStorage.save_form_to_storage === undefined) localStorage.save_form_to_storage=0;
-	if (localStorage.fixed_a_bug === undefined) localStorage.fixed_a_bug=1; //he-he
-	if (localStorage.make_dark === undefined) localStorage.make_dark=0;
+if (localStorage.show_ban_info === undefined) { //last added option
+	const options_to_init = [
+		//Toster options
+		'show_habr','show_nickname','fixed_a_bug','always_notify_my_questions','show_blue_circle','notify_mention','notify_expert',
+		'is_widget','is_options_button','is_search','top24_show','read_q','show_psycho','show_status_achiever','show_cnt_questions',
+		'show_cnt_answers','show_perc_solutions','show_perc_sol_marks','show_ban_info','psycho_summary',
+		//Habr options
+		//move_posttime_down, move_stats_up, hide_comment_form_by_default, habr_fix_lines
+	];
+	options_to_init.forEach(c=>{if (localStorage[c] === undefined) localStorage[c]=1});
 	if (localStorage.all_conditions === undefined) localStorage.all_conditions="tag('JavaScript') = #ffc";
-	if (localStorage.enable_notifications === undefined) localStorage.enable_notifications=0;
-	if (localStorage.notify_if_inactive === undefined) localStorage.notify_if_inactive=0; //notify_if_inactive_only
-	if (localStorage.always_notify_my_questions === undefined) localStorage.always_notify_my_questions=1;
-	if (localStorage.notify_about_likes === undefined) localStorage.notify_about_likes=0;
-	if (localStorage.notify_about_solutions === undefined) localStorage.notify_about_solutions=0;
-	if (localStorage.datetime_replace === undefined) localStorage.datetime_replace=0;
-	if (localStorage.datetime_days === undefined) localStorage.datetime_days=0;
-	if (localStorage.notify_all === undefined) localStorage.notify_all=0;
-	if (localStorage.notify_my_feed === undefined) localStorage.notify_my_feed=0;
-	if (localStorage.enable_notify_action === undefined) localStorage.enable_notify_action=0;
-	if (localStorage.show_blue_circle === undefined) localStorage.show_blue_circle=1; //подписки
-	if (localStorage.notify_mention === undefined) localStorage.notify_mention=1;
-	if (localStorage.notify_expert === undefined) localStorage.notify_expert=1;
-	if (localStorage.notify_answer_comment === undefined) localStorage.notify_answer_comment=0;
-	if (localStorage.notify_changes === undefined) localStorage.notify_changes=0;
-	if (localStorage.is_widget === undefined) localStorage.is_widget=1;
-	if (localStorage.is_options_button === undefined) localStorage.is_options_button=1;
-	if (localStorage.is_search === undefined) localStorage.is_search=1;
-	if (localStorage.top24_show === undefined) localStorage.top24_show=1;
-	if (localStorage.read_q === undefined) localStorage.read_q=1;
-	//Habr options
-	if (localStorage.move_posttime_down === undefined) localStorage.move_posttime_down=0;
-	if (localStorage.move_stats_up === undefined) localStorage.move_stats_up=0;
-	if (localStorage.hide_comment_form_by_default === undefined) localStorage.hide_comment_form_by_default=0;
-	if (localStorage.habr_fix_lines === undefined) localStorage.habr_fix_lines=0;
+	if (localStorage.datetime_days === undefined) localStorage.datetime_days=1;
+	
 }
 
 //--------- DEBUG ---------
@@ -665,16 +743,23 @@ function count_obj(obj) {
 	return cnt;
 }
 
-// -------------- BLACKLIST -----------
+// -------------- BLACKLIST TAGS -----------
 
 let db_tags_blacklist = {} // [tag] = true
 function update_blacklist() {
 	db_tags_blacklist = {};
 	const lines = localStorage.tag_blacklist.split("\n");
 	for(let i=0;i<lines.length;i++) {
-		const tag = lines[i].trim();
-		if (!tag) continue;
-		db_tags_blacklist[tag.toLowerCase()] = true;
+		let line = lines[i];
+		if (line.indexOf('//') !== -1) line = line.substr(0,line.indexOf('//'));
+		line = line.trim();
+		if (!line) continue;
+		const tags = line.replace(';',',').split(',');
+		tags.forEach(tag=>{
+			tag=tag.trim();
+			if (!tag) return;
+			db_tags_blacklist[tag.toLowerCase()] = true;
+		});
 	}
 }
 if (localStorage.tag_blacklist) update_blacklist();
@@ -687,10 +772,12 @@ function update_user_blacklist() {
 	let j,err;
 	const lines = localStorage.user_blacklist.split("\n");
 	for(let i=0;i<lines.length;i++) {
-		let line = lines[i].trim();
+		let line = lines[i];
+		if (line.indexOf('//') !== -1) line = line.substr(0,line.indexOf('//'));
+		line = line.trim();
 		if (!line) continue;
 		let rule = -1; //hide - правило по умолчанию
-		if ((j=line.indexOf('=')) > -1) { //сложное правило
+		if (false && (j=line.indexOf('=')) > -1) { //сложное правило. TODO: осмыслить, доделать
 			rule = line.substr(j+1).trim();
 			if (rule == 'hide') rule = -1;
 			else if (rule == 'ban') rule = -2;
@@ -700,9 +787,17 @@ function update_user_blacklist() {
 			}
 			line = line.substr(0,j).trim();
 		}
-		let arr = line.split(',');
-		arr.forEach(nick=>{
-			if (nick) db_user_blacklist[nick] = rule;
+		let phrases = line.split(',');
+		phrases.forEach(phrase=>{
+			phrase = phrase.trim().replace("\t",' ');
+			if (!phrase) return;
+			let arr = phrase.split(' ');
+			arr.forEach(nick=>{
+				nick = nick.trim();
+				if (nick[0] == '@') nick=nick.substr(1);
+				if (!nick) return;
+				db_user_blacklist[nick] = rule;
+			});
 		});
 	}
 	if(err)console.log('User Filter List:',err);
@@ -794,7 +889,14 @@ function update_conditions() {
 	if (!cond_update_error_string) cond_update_error_string = '&nbsp;';
 	return db_conditions_notify_cnt;
 }
-if (localStorage.all_conditions) setTimeout(update_conditions,0); //because eval.lite is not defined yet
+if (localStorage.all_conditions) { //because eval.lite is not defined yet
+	let timer = setInterval(e=>{
+		if (eval.lite) {
+			update_conditions()
+			clearInterval(timer);
+		}
+	},500); 
+}
 
 //---------------------Notofocations------------------------
 
@@ -1118,12 +1220,14 @@ function updateNotificationOptions() {
 						q.t = Q_title;
 					} else q.ut = now;
 					let renamed, noticed;
-					if (!q.t || q.t != Q_title && q.t.replace('«','"').replace('»','"').replace('—','-').replace('>','&gt;') != Q_title) {
-						//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
-						renamed = !!q.t;
-						console.log('Rename:',q.t,Q_title);
-						q.t = clearString(Q_title); //Быстрый синхронный title
-						saveDB();
+					if (false) { //Из-за запредельной глючности в связи с кривой базой Тостера, лучше вообще отключить.
+						if (!q.t || q.t != Q_title && q.t.replace('«','"').replace('»','"').replace('—','-').replace('>','&gt;') != Q_title) {
+							//console.log("Переименование:",q.t,(q.t||'').length,Q_title,(Q_title||'').length);
+							renamed = !!q.t;
+							console.log('Rename:',q.t,Q_title);
+							q.t = clearString(Q_title); //Быстрый синхронный title
+							saveDB();
+						}
 					}
 					let must_notify = notify_all || q.sub
 						|| current_user && q.user_id == current_user && localStorage.always_notify_my_questions==1;

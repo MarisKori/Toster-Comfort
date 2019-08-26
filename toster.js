@@ -56,10 +56,21 @@ function user_html(user,no_name) {
 	//stats & questions
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
-		html += ' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
-			+'</font></a> &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a+'" class="norma">'+user.cnt_a+'</a>'
-			+' &nbsp;<font color=#65c178 style="font-size:13px;" title="Решений: '+user.cnt_s+'%">'+user.cnt_s+'%</font>'
-			+' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>';
+		let honor = user.con || 0;
+		html += //https://toster.ru/user/dollar/tags
+			(OPTIONS.show_honor && !OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
+				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></a>':'')
+			+(!OPTIONS.show_cnt_questions?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname
+				+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
+				+'</font></a>')
+			+(!OPTIONS.show_cnt_answers?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a
+				+'" class="norma">'+user.cnt_a+'</a>')
+			+(OPTIONS.show_perc_solutions && !OPTIONS.sol_honor_replace?' &nbsp;<font color=#65c178 style="font-size:13px;" title="Решений: '
+				+user.cnt_s+'%">'+user.cnt_s+'%</font>':'')
+			+(OPTIONS.show_honor && OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
+				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
+			+(!OPTIONS.show_perc_sol_marks?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
+				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>');
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
@@ -308,7 +319,7 @@ function parse_questions() {
 }
 
 let udb = {}; // nickname => user
-let elem_user = []; // {e:elem, nickname:nickname}
+let elem_user = []; // {e:elem, nickname:nickname} // .e property is an element with class 'user-summary__nickname'
 let request_user = {}; // nickname => true
 
 function update_q(on_success, on_fail) {
@@ -317,15 +328,54 @@ function update_q(on_success, on_fail) {
 		arr: request_user,
 	}, function(data) {
 		//log("getUsers",data);
-		let cnt = 0;
+		//let cnt = 0;
 		for(let nickname in data) {
 			udb[nickname] = data[nickname]; //copy (update missing elements)
-			cnt++;
+			//cnt++;
 		}
 		//log('Update Question Records:',cnt);
 		let result = true;
+		let users_with_info = {}; //local cache
+		let answer_author = '';
 		elem_user.forEach(x=>{
+			if (x.done) return;
 			let user = udb[x.nickname];
+			if (!user) {
+				result = false;
+				return;
+			}
+			if (user.ban) { //Это сразу конец работы с данным пользователем. Вычеркиваем
+				let e = x.e;
+				while (e=e.parentNode) {
+					if (e.tagName == 'LI') {
+						let comment = e.querySelector('.comment');
+						if (comment) {
+							comment.style.display = 'none';
+							e.a('i',!OPTIONS.show_ban_info?'Комментарий скрыт.':'Комментарий пользователя @'+x.nickname+' скрыт.');
+						} // else e.style.display = 'none';
+					} else if (!e.classList) {
+						log('ERROR! tag = ',e.tagName,e);
+						break;
+					} else if (e.classList.contains('content-list__item')) {
+						let wrapper = e.querySelector('.answer_wrapper');
+						if (wrapper) {
+							if (e.parentNode.parentNode.id == 'solutions') {
+								if (OPTIONS.dont_ban_solutions) break; //отменяем бан
+								e.a('i',!OPTIONS.show_ban_info?'Решение скрыто.':'Решение пользователя @'+x.nickname+' скрыто.');
+							} else {
+								e.a('i',!OPTIONS.show_ban_info?'Ответ скрыт.':'Ответ пользователя @'+x.nickname+' скрыт.');
+							}
+							wrapper.style.display = 'none';
+						} // else e.style.display = 'none';
+					} else if (e.classList.contains('question-head')) { //вопрос
+						break; //не баним
+					} else continue;
+					//e.style.display = 'none';
+					x.done = true;
+					delete request_user[x.nickname];
+					return;
+				}
+			}
 			let html = user_html(user,true);
 			if (user_html_result) {
 				if (html && !x.done) {
@@ -335,9 +385,80 @@ function update_q(on_success, on_fail) {
 				delete request_user[x.nickname];
 			}
 			else result = false;
+			let is_hint = false;
+			if (!(OPTIONS.psycho_not_myself && x.nickname == owner)) {
+				is_hint = !!user.hint;
+				if (!is_hint && user.con > 0 && OPTIONS.psycho_summary) {
+					is_hint = true
+					user.blue = true //цвет обычной оценки
+					if (user.con < 20) {
+						user.hint = 'Новичек';
+						user.note = '#Пытается освоиться с кнопками на Тостере.';
+					} else if (user.con < 100) {
+						user.hint = 'Любитель';
+						user.note = '#Творит добро, помогает хорошим людям.';
+					} else {
+						user.hint = 'Профи';
+						user.note = '#Знает правила Тостера.';
+					}
+				}
+			}
+			let is_ach = !!user.ach;
+			if (user.cnt_s && (is_hint || is_ach)) { //Показываем статусы только после первой подгрузки информации о пользователе.
+				let parent = x.e.parentNode; // element with class 'user-summary__desc'
+				let myhint = parent.querySelector('span.user-summary-comfort');
+				if (!myhint) {
+					//fix comments
+					let parent_container = parent.parentNode.parentNode.parentNode; //div
+					if (parent_container.classList.contains('comment')) { //this is comment!
+						if (is_hint && (OPTIONS.psycho_hide_comments
+							|| x.nickname == answer_author && OPTIONS.psycho_hide_same_author
+							|| OPTIONS.psycho_hide_next && users_with_info[x.nickname]))
+							is_hint = false;
+						if (is_ach && (OPTIONS.achiever_hide_comments
+							|| x.nickname == answer_author && OPTIONS.achiever_hide_same_author
+							|| OPTIONS.achiever_hide_next && users_with_info[x.nickname])) is_ach = false;
+						users_with_info[x.nickname] = true;
+						let cnt = (is_hint + is_ach);
+						if (cnt == 0) return; // ------> don't add info and all other actions
+						let body = parent_container.querySelector('.comment__body');
+						if (body) {
+							// -20px by default
+							let marginTop = -20 + (cnt == 2 ? 25 : 15);
+							body.style.marginTop = marginTop + 'px';
+						}
+					} else if (parent_container.classList.contains('answer')) { //this is anwer!
+						answer_author = x.nickname;
+						users_with_info = {};
+					}
+					//add info
+					let about = parent.querySelector('div.user-summary__about');
+					if (about) {
+						parent = about;
+						if (is_hint && OPTIONS.psycho_replace || is_ach && OPTIONS.achiever_replace) parent.innerText = '';
+						else parent.a('br');
+					}
+					else parent.a('br');
+					myhint = parent.a('span',null,'user-summary-comfort');
+					if (is_hint) {
+						let data = {style:'font-weight:bold; color:#a9bb1e;','data-psycho':user.note,'data-user':x.nickname};
+						if (user.blue) data.style = 'font-weight:bold; color:#aaaaff;';
+						myhint.a('span',user.hint,data);
+					}
+					if (is_hint && is_ach) myhint.a('br');
+					if (is_ach) {
+						myhint.a('span','Ачивер',{style:'font-weight:bold; color:#ed7503;','data-psycho':
+							user.ach == 3 ? ' Этот пользователь является НАСТОЯЩИМ ачивером и ревниво относится к оценкам своего творчества. Если вы не уделите внимания и не отблагодарите его (кнопкой), то он может психануть и удалить свой ответ!':
+							user.ach == 2 ? ' У этого пользователя КРАЙНЕ высокий процент решений. Он наверняка удалит свой ответ без отметки о решении.':
+							user.ach == 1 ? ' Судя по ПОДОЗРИТЕЛЬНО высокому проценту решений, этот пользователь может удалить свой ответ, если он никому не понравится и автор вопроса не отблагодарит (кнопкой).':
+							' Ошибка: '+user.ach
+						});
+					}
+				}
+			}
 		});
-		//log(result);
-		//log(elem_user);
+		//log('result',result);
+		//log('elem_user',elem_user);
 		if (on_success && result) on_success();
 		else if (on_fail && !result) on_fail();
 	});
@@ -776,10 +897,12 @@ function AsideRightFilters() {
 	if (OPTIONS.is_widget) {
 		let widget = c('dl',0,'panel-heading panel-heading_inner')
 		let add=e=>widget.a('dd',0,'panel-heading__content panel-heading__content_inner');
-		widget.a('dt','Toster Comfort ','panel-heading__title panel-heading__title_underline').a('span',manifest.version, OPTIONS.is_new && 'tc_new');
+		widget.a('dt','Toster Comfort ','panel-heading__title panel-heading__title_underline')
+			.a('span',manifest.version_name || manifest.version, OPTIONS.is_new && 'tc_new');
 		
 		if(OPTIONS.is_debug)add().a('a','Перезагрузить расширение',{href:'#'}).addEventListener('click',e=>{
-			chrome.runtime.sendMessage({type:'Reload'});
+			chrome.runtime.sendMessage({type:'Reload'}); //todo: не всегда перезагружается
+			if(!OPTIONS.enable_notifications) setTimeout(e=>window.location.reload(),1000);
 			e.preventDefault()
 		});
 		if(OPTIONS.is_options_button){
@@ -836,13 +959,25 @@ function AsideMenu() {
 	//ниже старый код, не трогаем
 	if(!owner) return log('logged out');
 	let main_menus = d.querySelectorAll('.main-menu');
-	let menu_item;
+	let menu_item, main_menu, user_menu;
+	let menu_arr = {};
 	for(let i=main_menus.length-1;i>=0;i--){
 		let item = main_menus[i].children[0];
-		if (item && item.innerText.trim() == 'Моя лента') {
-			menu_item = item.nextElementSibling;
-			main_menus = main_menus[i];
-			break;
+		if (item) {
+			if (item.innerText.trim() == 'Моя лента') {
+				menu_item = item.nextElementSibling;
+				main_menu = main_menus[i];
+				for(let j=main_menu.children.length-1;j>=0;j--){
+					let it = main_menu.children[j];
+					if (it.classList.contains('main-menu__item')) {
+						let name = it.innerText.trim();
+						if (name != '') menu_arr[name] = it;
+					}
+				}
+			}
+			else if (item.innerText.trim() == 'Настройки') {
+				user_menu = main_menus[i];
+			}
 		}
 	}
 	if (!menu_item) return log('Main menu not found.');
@@ -852,7 +987,7 @@ function AsideMenu() {
 		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
 			a.childNodes[2].nodeValue = 'Мои вопросы';
 			a.href = 'user/'+owner+'/questions';
-			main_menus.appendChild(e);
+			main_menu.appendChild(e);
 		}
 	}
 	if (OPTIONS.show_my_answers) {
@@ -861,8 +996,48 @@ function AsideMenu() {
 		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
 			a.childNodes[2].nodeValue = 'Мои ответы';
 			a.href = 'user/'+owner+'/answers';
-			main_menus.appendChild(e);
+			main_menu.appendChild(e);
 		}
+	}
+	if (OPTIONS.show_my_comments) {
+		let e = menu_item.cloneNode(true);
+		let a = e.children[0];
+		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
+			a.childNodes[2].nodeValue = 'Мои комментарии';
+			a.href = 'user/'+owner+'/comments';
+			main_menu.appendChild(e);
+		}
+	}
+	if (OPTIONS.show_my_likes) {
+		let e = menu_item.cloneNode(true);
+		let a = e.children[0];
+		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
+			a.childNodes[2].nodeValue = 'Мои лайки';
+			a.href = 'user/'+owner+'/likes';
+			main_menu.appendChild(e);
+		}
+	}
+	if (OPTIONS.show_my_tags) {
+		let e = menu_item.cloneNode(true);
+		let a = e.children[0];
+		if (a && a.tagName == 'A' && a.childNodes[2] && a.childNodes[2].nodeType == 3) {
+			a.childNodes[2].nodeValue = 'Мои теги';
+			a.href = 'user/'+owner+'/tags';
+			main_menu.appendChild(e);
+		}
+	}
+	if (!user_menu) return log('User submenu not found.');
+	if (OPTIONS.hidemenu_all_tags) {
+		let item = menu_arr['Все теги'];
+		if (item) user_menu.a(item);
+	}
+	if (OPTIONS.hidemenu_all_users) {
+		let item = menu_arr['Пользователи'];
+		if (item) user_menu.a(item);
+	}
+	if (OPTIONS.hidemenu_all_notifications) {
+		let item = menu_arr['Уведомления'];
+		if (item) user_menu.a(item);
 	}
 }
 
@@ -888,6 +1063,7 @@ function FilterCurator() {
 }
 
 function FilterDesc() {
+	return; //Что-то плохо работает. Отключено.
 	if(!OPTIONS.minify_names) return;
 	d.querySelectorAll('span[data-voted-msg]').forEach(e=>{
 		e.setAttribute('data-voted-msg', makeShort(e.getAttribute('data-voted-msg')));
@@ -1009,6 +1185,7 @@ function parse_opt() {
 		sandbox(AsideMenu);
 		sandbox(FilterCurator);
 		sandbox(RemoveTESpam);
+		sandbox(FilterDesc);
 		checkPoint('did options');
 	});
 }
@@ -1134,6 +1311,53 @@ function parseDOM() {
 	return true;
 }
 
+//Функция получает список субъективных оценок и применяет к списку пользователей (меню все пользователи).
+function ParseUserList() {
+	if (!OPTIONS.show_psycho) return;
+	//Формируем список пользователей.
+	let cards = [...d.querySelectorAll('.card')].filter(e=>e.querySelector('.card__head_user') && true || false);
+	if (cards.length != 30) log('User cards = '+cards.length);
+	let users = {}; // nick:el
+	let nicknames = [];
+	cards.forEach(e=>{
+		let a = e.querySelector('h2.card__head-title > a');
+		if (!a) return;
+		if (a.href.indexOf("https://toster.ru/user/") !== 0) return;
+		let nick = a.href.substr(23).trim();
+		if(nick=='') return;
+		nicknames.push(nick);
+		users[nick] = e;
+	});
+	//Получаем данные о них.
+	chrome.runtime.sendMessage({
+		type: "getHints",
+		nicknames: nicknames,
+	}, function(data) {
+		for(let nick in users) {
+			let e = users[nick];
+			let head = e.querySelector('.card__head_user');
+			head.style.minHeight = '145px';
+			let info = e.querySelector('.card__head-subtitle');
+			let o = data[nick];
+			if(!o)o={hint:'',note:''};
+			let myhint=c('div',null,{class:'user-summary-comfort',style:'height:20px;font-size:16px;line-height:14px'});
+			let t = myhint.a('span',o.hint,{style:'font-weight:bold; color:#a9bb1e;','data-psycho':o.note,'data-user':nick});
+			let h = 16;
+			let check_id = o.hint && setInterval(()=>{
+				let divHeight = t.offsetHeight;
+				if (divHeight <= 20 || h < 5) return clearInterval(check_id);
+				h--;
+				myhint.style.fontSize = h + 'px';
+			},0);
+			if (info) {
+				head.insertBefore(myhint,info);
+			} else { //no info
+				head.a(myhint);
+			}
+		}
+	});
+}
+
 
 d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	checkPoint('<--- LOAD EVENT');
@@ -1143,7 +1367,7 @@ d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	addCustomCSS(css_global);
 	//if (URL.indexOf('user/')===0 && !URL.match(/^user\/[^\/]+/iquestions/)
 	if (URL.indexOf('q/') === 0 || URL.indexOf('answer') === 0) {
-		parse_q();
+		sandbox(parse_q);
 		g_status = 'q';
 		checkPoint('question parsed');
 	}
@@ -1151,6 +1375,10 @@ d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 		if (!URL.match(/^user\/.*\/questions/)) listenOnOptions(parse_questions);
 		if (URL=='questions')g_status='all';
 		if (URL=='my/feed')g_status='feed';
+		if (URL=='users' || URL.indexOf('users/main')===0) {
+			g_status='userlist';
+			listenOnOptions(ParseUserList);
+		}
 	}
 	document.body.a('div',0,{id:'toster-comfort-sign'}).style.display = 'none';
 });
@@ -1184,6 +1412,20 @@ const css_global = `
 }
 .online_box{
 	padding-top:4px;
+}
+
+.comfortTooltip {
+	position: fixed;
+	padding: 10px 20px;
+	border: 1px solid #b3c9ce;
+	border-radius: 10px;
+	font: italic 14px/1.3 sans-serif;
+	color: #000;
+	background: #ebffcc;
+	white-space: pre-wrap;
+	max-width: 400px;
+	z-index: 999999;
+	box-shadow: 3px 3px 3px rgba(0, 0, 0, .3);
 }
 `;
 
@@ -1244,6 +1486,237 @@ function voteOnline(act) {
 	xhr.send();
 }
 
+let cached_user_tags = {}
+
+//Анализ тегов пользователя (по требованию)
+function addTagsGraph(el,nick) {
+	let timer;
+	let cnt = 0;
+	const max_count = 150; //30 seconds
+	function checkUser() {
+		function drawGraph(data) {
+			if(!data)return;
+			cached_user_tags[nick]=data;
+			if (data.cnt === 0) {
+				el.a('br');
+				el.a('span').a('b','Нет интересов.');
+			} else {
+				el.a('br');
+				el.a('span').a('b','Интересы:');
+				//tags
+				for(let i=0;i<data.cnt;i++) {
+					let t = data.tags[i];
+					el.a('br');
+					el.a('span',t.name + ' ('+t.honor+')').style.color = '#a98ae7';
+				}
+			}
+			//graph
+			function addCanvas(max) {
+				//el.a('br');
+				const HEIGHT = 100;
+				let ctx = el.a('canvas', 0, {width:'350px',height:HEIGHT+'px'}).getContext('2d');
+				const FLOOR = HEIGHT - 10;
+				const LEVEL = FLOOR - 10;
+				const MAX_VALUE = data.tags[0].honor;
+				function getY(honor) {
+					return Math.round(FLOOR - LEVEL * (honor / MAX_VALUE));
+				}
+				let LEFT = 10;
+				const WIDTH = -LEFT + (350-10);
+				const DELTA = WIDTH / max;
+				//ctx.beginPath();
+				//Координатная сетка
+				ctx.beginPath();
+				ctx.strokeStyle = 'rgb(150, 150, 150)';
+				ctx.lineWidth = 1;
+				ctx.moveTo(LEFT + 0.5, FLOOR - LEVEL - 5);
+				ctx.lineTo(LEFT + 0.5, FLOOR - 0.5);
+				ctx.lineTo(LEFT + WIDTH + 5, FLOOR - 0.5);
+				ctx.stroke();
+				ctx.font = '10px Arial';
+				//Сам график
+				ctx.beginPath();
+				ctx.strokeStyle = 'rgb(200, 0, 200)';
+				ctx.lineWidth = 3;
+				ctx.moveTo(LEFT, FLOOR - LEVEL);
+				for(let i =1;i<=max;i++) {
+					//log(i,data.tags,data.tags[i])
+					ctx.lineTo(LEFT + Math.floor(DELTA * i), getY(data.tags[i].honor));
+					if (i==5) {
+						ctx.stroke();
+						ctx.beginPath();
+						ctx.strokeStyle = 'rgb(250, 150, 250)';
+						ctx.moveTo(LEFT + Math.floor(DELTA * i), getY(data.tags[i].honor));
+					}
+				}
+				ctx.stroke();
+				ctx.strokeStyle = 'rgb(160, 160, 160)';
+				ctx.lineWidth = 0.5;
+				ctx.fillStyle = 'rgb(200, 0, 200)';
+				let LAST_GREEN_X;
+				let cc = []; //Координаты точек
+				for(let i =0;i<=max;i++) {
+					let cx = LEFT + Math.floor(DELTA * i);
+					let cy = getY(data.tags[i].honor);
+					cc[i] = {x:cx,y:cy};
+					if (!LAST_GREEN_X && data.tags[i].honor < 100) {
+						LAST_GREEN_X = cx - 7;
+						if (i>0) LAST_GREEN_X = LEFT + Math.floor(DELTA * (i-1) - DELTA * 0.5);
+					}
+					if(i>0) {
+						ctx.beginPath();
+						ctx.moveTo(cx + 0.5, FLOOR + 3);
+						ctx.lineTo(cx + 0.5, Math.max(10, cy - 25));
+						ctx.stroke();
+					}
+					ctx.fillRect(cx-3, cy-3, 6, 6);
+					if (i==5) ctx.fillStyle = 'rgb(250, 150, 250)';
+				}
+				//Зеленая линия
+				if (MAX_VALUE > 100) {
+					if (!LAST_GREEN_X) LAST_GREEN_X = LEFT + WIDTH - 5;
+					else if (LAST_GREEN_X < LEFT + 10) LAST_GREEN_X = LEFT + 10;
+					else if (LAST_GREEN_X > 340) LAST_GREEN_X = 340;
+					const GREEN_LINE_Y = FLOOR - (100 / MAX_VALUE) * LEVEL
+					ctx.strokeStyle = 'rgb(0, 255, 0)';
+					ctx.lineWidth = 0.5;
+					ctx.beginPath();
+					ctx.moveTo(LEFT + 5, GREEN_LINE_Y);
+					ctx.lineTo(LAST_GREEN_X, GREEN_LINE_Y);
+					ctx.stroke();
+					ctx.font = '8px Arial';
+					ctx.fillStyle = 'rgb(0, 128, 0)';
+					ctx.fillText('100', 0, GREEN_LINE_Y);
+				}
+				//Подписи
+				ctx.font = '10px Arial';
+				ctx.fillStyle = 'rgb(0, 0, 0)';
+				let px = new Array(HEIGHT).fill(0);
+				function checkSpace(cx,cy,w,n) { //проверяет, есть ли место для текста
+					if (cy < 7 || cy > HEIGHT -1) return false;
+					if (n < max) { 
+						let dy = ((cc[n+1].y - cc[n].y) / DELTA) * 4;
+						if (cc[n].y + dy - 2 < cy && cc[n].y + dy + 2 > cy - 8) return false;
+					}
+					let min = Math.max(cy-8,0);
+					for (let y=cy;y>=min;y--) {
+						if (px[y] > cx) return false;
+					}
+					for (let i=n+1;i<max;i++) {
+						if (cc[i].x + 3 > cx + w) return true;
+						if (cc[i].y - 3 < cy && cc[i].y + 3 > cy - 8) return false;
+					}
+					return true;
+				}
+				for(let i =0;i<=max;i++) {
+					let cx = cc[i].x+3;
+					let cy = cc[i].y;
+					let text = data.tags[i].name;
+					let w = ctx.measureText(text).width;
+					if (cx + w > 350) continue;
+					let y = 0;
+					while (!checkSpace(cx,cy+y,w,i)) {
+						if (y>15) {
+							y=-100;
+							break;
+						}
+						if (checkSpace(cx,cy-y,w,i)) {
+							y = -y;
+							break;
+						}
+						y++;
+					}
+					if (y === -100) continue;
+					ctx.fillText(text, cx, cy + y);
+					for(let yy=Math.max(0,cy+y-8); yy < cy+y; yy++) {
+						if (yy>=0) px[yy] = cx + w;
+					}
+					//ctx.fillRect(0, cy+y, cx + w, 8);
+				}
+				//log(px)
+			}
+			let max = Math.min(data.tags.length-1, 5);
+			if (data.tags.length > 3 || data.tags.length > data.cnt) { //small graph
+				addCanvas(max);
+			}
+			if (data.tags.length > 6 && max / data.tags.length < 0.7) { //big graph
+				addCanvas(data.tags.length - 1);
+			}
+		}
+		if (cached_user_tags[nick]) {
+			cnt = max_count;
+			if (timer) clearInterval(timer);
+			drawGraph(cached_user_tags[nick]);
+			return;
+		}
+		chrome.runtime.sendMessage({
+			type: "analyzeUserTags",
+			nickname: nick,
+		}, function(data) {
+			function checkData() {
+				if (!el.parentNode) return; //already hidden
+				if (cached_user_tags[nick]) return; //already drawn
+				if (data.cnt === -1) return false; //waiting
+				return data;
+			} //log('check',checkData())
+			if (checkData() !== false) {
+				if (timer) clearInterval(timer);
+				if (data.cnt >= 0) drawGraph(data);
+			} else cnt++;
+			if (cnt >= max_count && timer) clearInterval(timer);
+		});
+	}
+	checkUser();
+	if (cnt < max_count) timer = setInterval(checkUser,200);
+}
+
+
+//Всплывающая подсказка
+let saveTooltip;
+d.addEventListener("mouseover", e=>{
+	let t = e.target;
+	let tooltipHtml = t.getAttribute('data-psycho');
+	if (!tooltipHtml) return;
+
+	saveTooltip = c('div');
+	saveTooltip.className = 'comfortTooltip';
+	if (tooltipHtml[0] == ' ') saveTooltip.style.backgroundColor = '#dc825a';
+	else if (tooltipHtml[0] == '#') {
+		tooltipHtml = tooltipHtml.substr(1);
+		saveTooltip.style.backgroundColor = '#ddeeff';
+	}
+	saveTooltip.innerText = tooltipHtml;
+	d.body.a(saveTooltip);
+	if (OPTIONS.psycho_tags) {
+		let nickname = t.getAttribute('data-user');
+		if (nickname) {
+			addTagsGraph(saveTooltip,nickname);
+		}
+	}
+
+	let coords = t.getBoundingClientRect();
+
+	let left = coords.left + 50; // + 150 + (t.offsetWidth - saveTooltip.offsetWidth) / 2;
+	if (left < 0) left = 0; 
+
+	let top = coords.top - saveTooltip.offsetHeight - 3;
+	if (top < 0) top = coords.top + t.offsetHeight + 3;
+	
+	if (top + saveTooltip.offsetHeight > window.innerHeight) { // Даже внизу не влезает, надо смещать вправо, там есть место.
+		left = coords.right + 3;
+		top = 3;
+	}
+
+	saveTooltip.style.left = left + 'px';
+	saveTooltip.style.top = top + 'px';
+});
+
+d.addEventListener("mouseout", e=>{
+	if (saveTooltip) {
+		saveTooltip.remove();
+		saveTooltip = null;
+	}
+});
 
 
 

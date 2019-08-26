@@ -4,7 +4,8 @@
 	"name": "Toster Comfort",
 	"short_name": "Toster Comfort",
 	"description": "Добавляет больше информации и делает навигацию удобнее.",
-	"version": "1.0.1",
+	"version": "1.2.0.1",
+	"version_name": "1.2.0-rc.1",
 	"icons": {
 			"16": "images/toster_logo_16.png",
 			"24": "images/toster_logo_24.png",
@@ -16,7 +17,7 @@
 		"https://toster.ru/*", "https://habr.com/*", "notifications", "unlimitedStorage", "storage"
 	],
 	"background": {
-		"scripts": ["background.js", "eval_lite.js"]
+		"scripts": ["characters.js", "background.js", "eval_lite.js"]
 	},
 	"content_scripts": [ {
 		"all_frames": true,

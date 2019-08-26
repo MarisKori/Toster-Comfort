@@ -66,6 +66,7 @@ textarea {
     display: block;
 }
 #tabs, #open { ddisplay:none; }
+.hidden {display: none;}
 </style>
 </head><body>
 <div id="tabs">
@@ -90,26 +91,118 @@ textarea {
 	
 	<div id="stats">
 		<h3>Пользователи</h3>
-		<label for="cut_karma">
-			<input id="cut_karma" type="checkbox">
-			Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
-		</label>
-		<label for="show_habr">
-			<input id="show_habr" type="checkbox">
-			Показывать количество публикаций/комментариев на Хабре, если есть
-		</label>
-		<label for="hide_word_karma">
-			<input id="hide_word_karma" type="checkbox">
-			Убрать слово "Карма"
-		</label>
-		<label for="show_name">
-			<input id="show_name" type="checkbox">
-			Показывать имя в списке вопросов
-		</label>
-		<label for="show_nickname">
-			<input id="show_nickname" type="checkbox">
-			Показывать ник в списке вопросов
-		</label>
+		<div class="frame">
+			<label for="show_name">
+				<input id="show_name" type="checkbox">
+				Показывать имя в списке вопросов
+			</label>
+			<label for="show_nickname">
+				<input id="show_nickname" type="checkbox">
+				Показывать ник в списке вопросов
+			</label>
+		</div>
+		<div class="frame">
+			<label for="cut_karma">
+				<input id="cut_karma" type="checkbox">
+				Игнорировать дробную часть кармы (<font color="#6c8d00">+789.7</font> превратится в <font color="#6c8d00">+789</font>).
+			</label>
+			<label for="show_habr">
+				<input id="show_habr" type="checkbox">
+				Показывать количество публикаций/комментариев на Хабре, если есть
+			</label>
+			<label for="hide_word_karma">
+				<input id="hide_word_karma" type="checkbox">
+				Убрать слово "Карма"
+			</label>
+			<label for="minify_curator">
+				<input id="minify_curator" type="checkbox">
+				Убрать лишние слова (титул куратора, автора)
+			</label>
+			<label for="show_honor">
+				<input id="show_honor" type="checkbox">
+				Показывать <font color=#a98ae7>вклад</font> пользователя <span class=new>(new!)</span>
+			</label>
+			<label for="show_cnt_questions">
+				<input id="show_cnt_questions" type="checkbox">
+				Показывать количество вопросов пользователя
+			</label>
+			<label for="show_cnt_answers">
+				<input id="show_cnt_answers" type="checkbox">
+				Показывать количество ответов пользователя
+			</label>
+			<label for="show_perc_solutions">
+				<input id="show_perc_solutions" type="checkbox">
+				Показывать процент решений пользователя
+			</label>
+			<label for="sol_honor_replace">
+				<input id="sol_honor_replace" type="checkbox">
+				Вместо процента решений показывать <font color=#a98ae7>вклад</font> пользователя <span class=new>(new!)</span>
+			</label>
+			<label for="show_perc_sol_marks">
+				<input id="show_perc_sol_marks" type="checkbox">
+				<b>Показывать процент вопросов, в которых пользователь выбрал решение</b>
+			</label>
+		</div>
+		<div class="frame">
+			<label for="show_psycho">
+				<input id="show_psycho" type="checkbox">
+				Показать <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Субъективная-оценка">субъективную оценку</a> <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_summary">
+				<input id="psycho_summary" type="checkbox">
+				Показывать обычную оценку, если нет субъективной <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_replace">
+				<input id="psycho_replace" type="checkbox">
+				Заменять оценкой информацию пользователя о себе <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_tags">
+				<input id="psycho_tags" type="checkbox">
+				Анализировать интересы пользователя на основе подписок на теги <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_not_myself">
+				<input id="psycho_not_myself" type="checkbox">
+				Не показывать мне оценку обо мне же самом <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_hide_comments">
+				<input id="psycho_hide_comments" type="checkbox">
+				Не показывать оценку в комментариях <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_hide_same_author">
+				<input id="psycho_hide_same_author" type="checkbox">
+				Не показывать оценку пользователя в комментариях к его же ответу <span class=new>(new!)</span>
+			</label>
+			<label for="psycho_hide_next">
+				<input id="psycho_hide_next" type="checkbox">
+				Не показывать оценку дважды в той же ветке <span class=new>(new!)</span>
+			</label>
+		</div>
+		<div class="frame">
+			<label for="show_status_achiever">
+				<input id="show_status_achiever" type="checkbox">
+				Показывать <a href="https://github.com/MarisKori/Toster-Comfort/wiki/Статус-%22Ачивер%22">статус "Ачивер"</a>, если он есть <span class=new>(new!)</span>
+			</label>
+			<label for="achiever_replace">
+				<input id="achiever_replace" type="checkbox">
+				Заменять этим статусом информацию пользователя о себе <span class=new>(new!)</span>
+			</label>
+			<label for="show_psycho_over_achiever">
+				<input id="show_psycho_over_achiever" type="checkbox">
+				Не показывать статус "Ачивер", если есть субъективная оценка <span class=new>(new!)</span>
+			</label>
+			<label for="achiever_hide_comments">
+				<input id="achiever_hide_comments" type="checkbox">
+				Не показывать статус в комментариях <span class=new>(new!)</span>
+			</label>
+			<label for="achiever_hide_same_author">
+				<input id="achiever_hide_same_author" type="checkbox">
+				Не показывать статус пользователя в комментариях к его же ответу <span class=new>(new!)</span>
+			</label>
+			<label for="achiever_hide_next">
+				<input id="achiever_hide_next" type="checkbox">
+				Не показывать статус дважды в той же ветке <span class=new>(new!)</span>
+			</label>
+		</div>
 	</div>
 
 	<div id="toster">
@@ -127,8 +220,8 @@ textarea {
 				<input id="swap_buttons" type="checkbox">
 				Поменять местами "Отметить решением" и "Нравится"
 			</label>
-			<label for="minify_names">
-				<input id="minify_names" type="checkbox">
+			<label for="minify_names" class="hidden">
+				<input id="minify_names" type="checkbox" disabled>
 				Заменить названия элементов более короткими
 			</label>
 		</div>
@@ -177,7 +270,7 @@ textarea {
 			</label>
 			<label for="read_q">
 				<input id="read_q" type="checkbox">
-				Кнопка очищения всех уведомлений для текущего вопроса <span class=new>(new!)</span>
+				Кнопка очищения всех уведомлений для текущего вопроса
 			</label>
 		</div>
 		<div class="frame">
@@ -215,16 +308,35 @@ textarea {
 				<input id="show_my_answers" type="checkbox">
 				Показывать мои ответы в меню
 			</label>
+			<label for="show_my_comments">
+				<input id="show_my_comments" type="checkbox">
+				Показывать мои комментарии в меню <span class=new>(new!)</span>
+			</label>
+			<label for="show_my_likes">
+				<input id="show_my_likes" type="checkbox">
+				Показывать мои лайки в меню <span class=new>(new!)</span>
+			</label>
+			<label for="show_my_tags">
+				<input id="show_my_tags" type="checkbox">
+				Показывать мои теги в меню <span class=new>(new!)</span>
+			</label>
+			<label for="hidemenu_all_tags">
+				<input id="hidemenu_all_tags" type="checkbox">
+				Скрыть пункт меню "Все теги" <span class=new>(new!)</span>
+			</label>
+			<label for="hidemenu_all_users">
+				<input id="hidemenu_all_users" type="checkbox">
+				Скрыть пункт меню "Пользователи" <span class=new>(new!)</span>
+			</label>
+			<label for="hidemenu_all_notifications">
+				<input id="hidemenu_all_notifications" type="checkbox">
+				Скрыть пункт меню "Уведомления" <span class=new>(new!)</span>
+			</label>
 		</div>
-		<label for="minify_curator">
-			<input id="minify_curator" type="checkbox">
-			Убрать лишние слова (титул куратора, автора)
-		</label>
 		<label for="remove_te_spam">
 			<input id="remove_te_spam" type="checkbox">
 			Скрывать уведомление "Настройки Toster Extension изменены"
 		</label>
-		
 	</div>
 
 	<div id="notifications">
@@ -307,7 +419,7 @@ textarea {
 			Скрывать вопросы с решениями
 		</label>
 		<p>
-			Фильтр тегов (по одному на строку):<br>
+			Фильтр тегов (можно разделять <b>запятыми</b> или новыми строками): <span class=new>(new!)</span><br>
 			<textarea id="tag_blacklist" cols=100 rows=5></textarea>
 		</p>
 
@@ -322,8 +434,17 @@ textarea {
 			<span class=error id="cond_error"></span>
 		</p>
 
-		<p style="display:none">
-			Фильтр пользователей (через запятую, многострочно): <span class=new>(new!)</span><br>
+		<p>
+			<a href="https://github.com/MarisKori/Toster-Comfort/wiki/Чёрный-список-пользователей">Чёрный список пользователей</a>
+				(через запятую, многострочно): <span class=new>(new!)</span><br>
+			<label for="show_ban_info">
+				<input id="show_ban_info" type="checkbox">
+				Показывать имя пользователя, чей ответ скрыт. 
+			</label>
+			<label for="dont_ban_solutions">
+				<input id="dont_ban_solutions" type="checkbox">
+				Не скрывать решения забаненных.
+			</label>
 			<textarea id="user_blacklist" cols=100 rows=5></textarea>
 		</p>
 	</div>

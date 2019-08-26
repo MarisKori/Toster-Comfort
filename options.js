@@ -105,7 +105,15 @@ function checkNotifyCnt(cnt) {
 document.addEventListener('DOMContentLoaded', function () {
 	const manifest = chrome.runtime.getManifest();
 	const version = document.getElementById('current_version');
-	version.innerHTML = '<b>Версия: v'+manifest.version+'</b>';
+	version.innerHTML = '<b>Версия: v'+(manifest.version_name || manifest.version)+'</b>';
+
+	init_checkbox("show_honor");
+	init_checkbox("show_cnt_questions");
+	init_checkbox("show_cnt_answers");
+	init_checkbox("show_perc_solutions");
+	init_checkbox("sol_honor_replace",{master:'show_honor'});
+	init_checkbox("show_perc_sol_marks");
+
 	
 	init_checkbox("cut_karma");
 	init_checkbox("hide_sol_button");
@@ -115,6 +123,16 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("hide_word_karma");
 	init_checkbox("show_name");
 	init_checkbox("show_nickname");
+	init_checkbox("show_psycho");
+	init_checkbox("psycho_replace",{master:'show_psycho'});
+	init_checkbox("psycho_tags",{master:'show_psycho'});
+	init_checkbox("psycho_summary",{master:'show_psycho'});
+	init_checkbox("psycho_not_myself",{master:'show_psycho'});
+	init_checkbox("psycho_hide_comments",{master:'show_psycho'});
+	init_checkbox("psycho_hide_same_author",{master:'show_psycho'});
+	init_checkbox("psycho_hide_next",{master:'show_psycho'});
+	
+	
 	init_checkbox("use_ctrl_enter");
 	init_checkbox("hide_offered_services",{antimaster:'aside_right_noads'});
 	init_checkbox("aside_right_noads");
@@ -161,8 +179,20 @@ document.addEventListener('DOMContentLoaded', function () {
 	setTimeout(()=>checkNotifyCnt(background.getDbCondLength()),300);
 	init_checkbox("show_my_questions");
 	init_checkbox("show_my_answers");
+	init_checkbox("show_my_comments");
+	init_checkbox("show_my_likes");
+	init_checkbox("show_my_tags");
+	init_checkbox("hidemenu_all_tags");
+	init_checkbox("hidemenu_all_users");
+	init_checkbox("hidemenu_all_notifications");
 	init_checkbox("minify_curator");
 	init_checkbox("remove_te_spam");
+	init_checkbox("show_status_achiever");
+	init_checkbox("show_psycho_over_achiever",{master:'show_status_achiever',master2:'show_psycho'});
+	init_checkbox("achiever_replace",{master:'show_status_achiever'});
+	init_checkbox("achiever_hide_comments",{master:'show_status_achiever'});
+	init_checkbox("achiever_hide_same_author",{master:'show_status_achiever'});
+	init_checkbox("achiever_hide_next",{master:'show_status_achiever'});
 
 	//datetime
 	init_checkbox("datetime_replace");
@@ -184,6 +214,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		userlist = background.localStorage.user_blacklist;
 		textarea_userlist.value = userlist;
 	}
+	init_checkbox("show_ban_info");
+	init_checkbox("dont_ban_solutions");
 	
 	textarea_conditions = document.getElementById('all_conditions');
 	if (background.localStorage.all_conditions) {
