@@ -392,7 +392,7 @@ function update_q(on_success, on_fail) {
 					is_hint = true
 					user.blue = true //цвет обычной оценки
 					if (user.con < 20) {
-						user.hint = 'Новичек';
+						user.hint = 'Новичок';
 						user.note = '#Пытается освоиться с кнопками на Тостере.';
 					} else if (user.con < 100) {
 						user.hint = 'Любитель';

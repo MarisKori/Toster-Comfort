@@ -333,7 +333,7 @@ function checkCondition(cond, current_data) {
 		env.h = env.honor;
 	} else env = current_data;
 	try {
-		return eval.lite(cond, env);
+		return eval_lite(cond, env);
 	} catch(e) {
 		if ((typeof e == 'object') && (typeof e.message == 'string')) condition_error_string = e.message;
 		else condition_error_string = e + '';
@@ -434,7 +434,7 @@ function updateUserTagsCache(nick) {
       //        <img class="tag__image tag__image_bg" src="https://habrastorage.org/r/w120/files/4d0/738/fc1/4d0738fc1d9b4e0b8818bea5ac8a4923.png" alt="тестирование-по">
       //</a>
 			let m = h.match(/<meta itemprop="name" content="([^"]*)">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) answers">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) contribute">/);
-			if(!m)return console.log("Can't read tag card.");
+			if(!m)return console.log("Can't read tag card:",{s:h});
 			let tag = {
 				name: clearString(m[1]),
 				cnt_a: m[2]-0,
@@ -443,7 +443,7 @@ function updateUserTagsCache(nick) {
 			if (tag.honor === 0) return;
 			tags.push(tag);
 		});
-		console.log(tags.length);
+		console.log('tags.length =',tags.length);
 		//Отбираем значимые теги. Это те, которые до крутого излома.
 		let ratio = [];
 		for(let i=0;i<tags.length-2;i++){
@@ -889,9 +889,9 @@ function update_conditions() {
 	if (!cond_update_error_string) cond_update_error_string = '&nbsp;';
 	return db_conditions_notify_cnt;
 }
-if (localStorage.all_conditions) { //because eval.lite is not defined yet
+if (localStorage.all_conditions) { //because eval_lite is not defined yet
 	let timer = setInterval(e=>{
-		if (eval.lite) {
+		if (eval_lite) {
 			update_conditions()
 			clearInterval(timer);
 		}

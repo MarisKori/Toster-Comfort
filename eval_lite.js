@@ -272,6 +272,6 @@ function EvalLite(str,env) {
 }
 
 eval_lite = EvalLite;
-eval.lite = EvalLite;
+//eval.lite = EvalLite;
 
 //EvalLite('(q >= 15 || q > 5 && a > 30) && s <= 10', {q:15, a:1, s:64}); 
