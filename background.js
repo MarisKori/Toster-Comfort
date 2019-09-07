@@ -331,6 +331,8 @@ function checkCondition(cond, current_data) {
 		env.t = env.title;
 		env.v = env.views;
 		env.h = env.honor;
+		env.respect = env.a && env.h != -1 && Math.round(env.h / env.a * 10) * 0.1 || -1;
+		env.r = env.respect;
 	} else env = current_data;
 	try {
 		return eval_lite(cond, env);
@@ -419,8 +421,9 @@ function updateUserTagsCache(nick) {
 	if (cache.is_pending) return;
 	cache.is_pending = true;
 	let data = cache.data;
-	getURL('https://toster.ru/user/'+nick+'/tags', html=>{ //onSuccess
+	getURL('https://toster.ru/user/'+nick+'/tags', html=>{ //console.log('onSuccess');
 		cache.is_pending = false;
+		cache.ut = (new Date()).getTime();
 		let html_cards = html.match(/<article class="card"[\s\S]*?<\/article>/g);
 		if (!html_cards) {
 			data.cnt = 0;
@@ -434,7 +437,7 @@ function updateUserTagsCache(nick) {
       //        <img class="tag__image tag__image_bg" src="https://habrastorage.org/r/w120/files/4d0/738/fc1/4d0738fc1d9b4e0b8818bea5ac8a4923.png" alt="тестирование-по">
       //</a>
 			let m = h.match(/<meta itemprop="name" content="([^"]*)">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) answers">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) contribute">/);
-			if(!m)return console.log("Can't read tag card:",{s:h});
+			if(!m)return; //console.log("Can't read tag card:",{s:h});
 			let tag = {
 				name: clearString(m[1]),
 				cnt_a: m[2]-0,
@@ -462,8 +465,7 @@ function updateUserTagsCache(nick) {
 		data.tags = tags;
 		data.cnt = maxtag+1; //tags.length;
 		console.log(data)
-		cache.ut = (new Date()).getTime();
-	}, ()=>{ //onFail
+	}, ()=>{ //console.log('onFail');
 		cache.is_pending = false;
 	});
 }
@@ -543,22 +545,21 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			}
 			let user = db.user[nickname];
 			if (user) {
-				u[nickname] = user;
+				user = Object.assign({},user);
 				if (is_hint && CHARACTERS[nickname]) {
 					user = Object.assign({},user,CHARACTERS[nickname]);
-					u[nickname] = user;
 				}
-				let is_achiever = user.cnt_s > 49 && user.cnt_a > 9 || ACHIEVERS[nickname];
+				let is_achiever = user.cnt_s > 49 && user.cnt_a > 9 && !NOT_ACHIEVERS[nickname] || ACHIEVERS[nickname];
 				if (is_achiever && localStorage.show_status_achiever == 1 && !(user.hint && localStorage.show_psycho_over_achiever == 1)) {
 					if (ACHIEVERS[nickname]) is_achiever = 3;
 					else if (user.cnt_s > 89) is_achiever = 2;
 					else is_achiever = 1;
-					user = Object.assign({},user); //TODO: Это какие-то костыли. Нужно переделать по уму.
 					user.ach = is_achiever;
-					u[nickname] = user;
 				}
+				u[nickname] = user;
+				user.respect = user.cnt_a && Math.round(user.con / user.cnt_a * 10) * 0.1 || 0;
 			}
-			if (request.arr[nickname] === 1) {
+			if (request.arr[nickname] === 1) { //Принудительное обновление, если 1, а не просто true.
 				//console.log('Fast update:',nickname);
 				updateUser(nickname, 300000);
 			}
@@ -714,6 +715,8 @@ const TOSTER_OPTIONS = [
 	'show_cnt_questions','show_cnt_answers','show_perc_solutions','show_perc_sol_marks',
 	'show_ban_info','dont_ban_solutions',
 	'show_psycho','show_honor','sol_honor_replace','psycho_summary','psycho_tags',
+	'mark_anwers_by_color','mark_answers_count',
+	'add_comment_lines','change_user_background','show_respect',
 ];
 
 const HABR_OPTIONS = [

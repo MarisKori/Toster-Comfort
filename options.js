@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("show_perc_solutions");
 	init_checkbox("sol_honor_replace",{master:'show_honor'});
 	init_checkbox("show_perc_sol_marks");
+	init_checkbox("show_respect");
 
 	
 	init_checkbox("cut_karma");
@@ -193,6 +194,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("achiever_hide_comments",{master:'show_status_achiever'});
 	init_checkbox("achiever_hide_same_author",{master:'show_status_achiever'});
 	init_checkbox("achiever_hide_next",{master:'show_status_achiever'});
+	init_checkbox("mark_anwers_by_color");
+	init_checkbox("mark_answers_count",{master:'mark_anwers_by_color'});
+	init_checkbox("add_comment_lines");
+	init_checkbox("change_user_background");
 
 	//datetime
 	init_checkbox("datetime_replace");

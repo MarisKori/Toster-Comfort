@@ -70,7 +70,10 @@ function user_html(user,no_name) {
 			+(OPTIONS.show_honor && OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
 				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
 			+(!OPTIONS.show_perc_sol_marks?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
-				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>');
+				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>')
+			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://toster.ru/user/'+user.nickname
+				+'" title="Соотношение вклада к вопросам: '+(user.respect).toFixed(1)
+				+'" class="norma" style="color:#ff9040">'+(user.respect).toFixed(1)+'</a>':'');
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
@@ -374,6 +377,31 @@ function update_q(on_success, on_fail) {
 					x.done = true;
 					delete request_user[x.nickname];
 					return;
+				}
+			} // end user ban
+			if (OPTIONS.change_user_background) { //random color
+				let parent = x.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+				if (parent.className == 'content-list__item') { //comment
+					//parent.style.backgroundColor = 'red';
+				} else if (parent.className && parent.className.trim() == 'answer_wrapper') {
+					parent = parent.children[0];
+				} else parent = 0;
+				if (parent) {
+					function extractNumber(num) {
+						num = Math.abs(num || 0);
+						if (num < 10) return Math.floor(num);
+						else if (num < 100) return Math.floor(num * 0.1) + 17;
+						else if (num < 1000) return Math.floor(num * 0.01) + 29;
+						else return 43;
+					}
+					let seed = ((((extractNumber(user.stat_pub) * 7 + extractNumber(user.stat_comment)) * 7 + extractNumber(user.karma))* 7 + extractNumber(user.cnt_s))*7 + extractNumber(user.cnt_q)) * 7 + extractNumber(user.cnt_a);
+					let r = Math.floor(seed % 48);
+					seed = Math.floor(seed / 48);
+					let g = Math.floor(seed % 48);
+					seed = Math.floor(seed / 48);
+					let b = Math.floor(seed % 48);
+					let arr = ['d','e','f'];
+					parent.style.backgroundColor = 'rgb('+(r+207)+','+(g+207)+','+(b+207)+')';
 				}
 			}
 			let html = user_html(user,true);
@@ -1172,6 +1200,14 @@ function parse_opt() {
 				q[i].style.display = 'none';
 			}
 		}
+		if (options.aside_right_noads == 1) { //Скрыть прочую всплывающую рекламу
+			function RemoveAlerts() {
+				let info = sel('.alert_info');
+				if (!info) return;
+				info.style.display = 'none';
+			}
+			sandbox(RemoveAlerts); //Пустой div уже есть на момент проверки.
+		}
 		if (options.use_ctrl_enter == 1) sandbox(set_ctrl_enter_handler);
 		if (options.save_form_to_storage == 1) sandbox(enable_save_form_to_storage);
 		arr_on_options_callback.forEach(fn=>sandbox(fn));
@@ -1186,8 +1222,145 @@ function parse_opt() {
 		sandbox(FilterCurator);
 		sandbox(RemoveTESpam);
 		sandbox(FilterDesc);
+		if (options.add_comment_lines) sandbox(addCanvasToComments);
 		checkPoint('did options');
 	});
+}
+
+//Добавляем сноски в сложное дерево комментариев
+function addCanvasToComments() {
+	var base_offset_el;
+	function getOffset(el) {
+		let x = 0, y = 9;
+		while( el && el != base_offset_el && !isNaN( el.offsetLeft ) && !isNaN( el.offsetTop ) ) {
+			x += el.offsetLeft - el.scrollLeft;
+			y += el.offsetTop - el.scrollTop;
+			el = el.offsetParent;
+		}
+		return { y: y, x: x };
+	}
+	//Проверяет открытые комменты и добавляет слой со сносками.
+	function checkCommentCanvas() {
+		let arr1 = [...d.querySelectorAll('.answer__comments')];
+		let arr2 = [...d.querySelectorAll('.question__comments')];
+		arr1.concat(arr2).forEach(e=>{
+			if (e.is_canvas_created) return;
+			let e_rect = e.getBoundingClientRect();
+			if (e_rect.left == 0) return;
+			let answer_item = e.parentNode.parentNode;
+			let role = answer_item.getAttribute('role');
+			if ((!role || role.trim() != 'answer_item') && answer_item.id != 'question_show') return;
+			//let item_rect = answer_item.getBoundingClientRect();
+			let WIDTH = e_rect.right - e_rect.left;
+			let HEIGHT = e_rect.bottom - e_rect.top;
+			let canvas = c('canvas',0,'comfortLines');
+			//canvas.style.backgroundColor = 'red';
+			canvas.setAttribute('width',WIDTH + 'px');
+			canvas.setAttribute('height',HEIGHT + 'px');
+			canvas.style.width = WIDTH + 'px';
+			canvas.style.height = HEIGHT + 'px';
+			let ctx = canvas.getContext("2d");
+			ctx.globalAlpha = 0.2;
+			//ctx.fillStyle = "red"; //test
+			//ctx.fillRect(0, 0, WIDTH, HEIGHT);
+			e.insertBefore(canvas,e.children[0]);
+			e.is_canvas_created = true;
+			base_offset_el = canvas.offsetParent;
+			let c_ofs = getOffset(canvas);
+			let links = canvas.parentNode.querySelectorAll('a');
+			let last_avatar;
+			let avatars = {};
+			ctx.beginPath();
+			ctx.strokeStyle = 'rgb(0, 0, 0)';
+			ctx.lineWidth = 2;
+			if (links) links.forEach(a=>{
+				if (!a.href || a.href.indexOf('//toster.ru/user/') === -1) return; //4 - nick, 5 - empty
+				let nickname_arr = a.href.split('/');
+				if (nickname_arr.length > 6 || nickname_arr.length == 6 && nickname_arr[5]) return; //левые ссылки, ведут не в корень профиля
+				let nickname = nickname_arr[4];
+				if (a.className && a.className != 'user-summary__avatar') return;
+				let ofs = getOffset(a);
+				let rect = a.getBoundingClientRect();
+				rect.w = rect.right - rect.left;
+				rect.h = rect.bottom - rect.top;
+				let x1 = ofs.x - c_ofs.x - 0;
+				let y1 = ofs.y - c_ofs.y;
+				if (a.className) {
+					let ava = {
+						a: a,
+						x1: x1, y1: y1,
+						rect: rect,
+					};
+					avatars[nickname] = ava;
+					return;
+				} else if (a.className) return; //все стилизованные - не в тексте коммента
+				//простая ссылка. Делаем рамку и линию
+				let ava = avatars[nickname];
+				if (!ava) return;
+				//есть связь с предыдущим оратором
+				ctx.rect(x1, y1, rect.width, rect.height);
+				//ctx.stroke();
+				//линию к аватарке
+				let x0 = x1 + rect.width * 0.5;
+				ctx.moveTo(x0, y1);
+				ctx.lineTo(ava.x1 + ava.rect.width * 0.5, ava.y1 + ava.rect.height);
+				//let x2 = ava.x1 + ava.rect.width * 0.5;
+				//let y2 = ava.y1 + ava.rect.height;
+				//ctx.quadraticCurveTo(0, (y2+y1) * 0.5, x2, y2);
+			});
+			ctx.stroke();
+		});
+	}
+	var buttons = d.querySelectorAll('.btn_comments-toggle');
+	buttons.forEach(e=>e.addEventListener('click',()=>{
+		setTimeout(checkCommentCanvas,0);
+	}));
+}
+
+//Раскрашиваем ответы пользователя в его профиле
+function parse_anwer_colors() {
+	if (!OPTIONS.mark_anwers_by_color) return;
+	let good = 0, notbad = 0, zero = 0;
+	d.querySelectorAll('.answer_wrapper').forEach(wrapper=>{
+		let is_solution = wrapper.children[0].classList.contains('answer_solution');
+		let likes = 2;
+		if (wrapper.querySelector('.btn_like[data-answer_like_count="0"]')) likes = 0;
+		else if (wrapper.querySelector('.btn_like[data-answer_like_count="1"]')) likes = 1;
+		let score = likes + (is_solution ? 2 : 0);
+		let col, col_code;
+		if (score == 0) {
+			col = '#fcc';
+			col_code = '#ffe2e2';
+			zero++;
+		} else if (score == 1) {
+			col = '#ffc';
+			col_code = '#ffffe2';
+			notbad++;
+		} else { // score >= 2
+			col = '#cfc';
+			col_code = '#e2ffe2';
+			good++;
+		}
+		if (col) {
+			wrapper.style.backgroundColor = col;
+			let pres = wrapper.querySelectorAll('pre');
+			if (pres) pres.forEach(pre=>{
+				pre.style.backgroundColor = col_code;
+			});
+			let codes = wrapper.querySelectorAll('code');
+			if (codes) codes.forEach(code=>{
+				code.style.backgroundColor = col_code;
+			});
+		}
+	});
+	if (!OPTIONS.mark_answers_count) return;
+	let page_body = sel('.page__body');
+	if (!page_body) return log('Error: page__body not found!');
+	let bar = c('div',0,{style:'width:100%;text-align: center'});
+	bar.a('span',' Хорошие ответы: '+good,{style:'font-weight:bold;color:#0a0'});
+	bar.a('span',' Так себе ответы: '+notbad,{style:'font-weight:bold;color:#ec0'});
+	bar.a('span',' Скучные ответы: '+zero,{style:'font-weight:bold;color:#f99'});
+	page_body.parentNode.insertBefore(bar, page_body);
 }
 
 function addCustomCSS(css) {
@@ -1358,6 +1531,52 @@ function ParseUserList() {
 	});
 }
 
+//Добавляем данные в профиль пользователя, которых там нет.
+function parse_user_profile() {
+	let list = sel('.inline-list_centered');
+	let nickname = URL.split('/')[1]; // user/myname[/...]
+	if (!list) return log('List with info not found!');
+	function addInfo(val, col, hint, url) { //значение, цвет значения, подсказка в одно слово, [URL]
+		let main_el = c(url ? 'a' : 'span', 0, 'mini-counter');
+		if (url) main_el.href = url;
+		main_el.a('div',val,'mini-counter__count').style.color = col;
+		main_el.a('div',hint,'mini-counter__value');
+		list.a('li',0,'inline-list__item inline-list__item_bordered').a(main_el);
+	}
+	let done = false;
+	function checkInfo() {
+		chrome.runtime.sendMessage({
+			type: "getUsers",
+			arr: {[nickname]: 1},
+		}, function(data) {
+			let user = data[nickname];
+			if (!user || user.solutions === undefined) return;
+			addInfo(user.solutions+'%', 'black', 'вежливость');
+			let respect = user.cnt_a && Math.round(user.con / user.cnt_a * 10) * 0.1 || 0;
+			addInfo(respect.toFixed(1), '#ff9040', 'польза');
+			if (user.karma !== undefined) {
+				if (!isNaN(parseFloat(user.karma)))
+					addInfo((user.karma < 0 ? '' : '+') + user.karma, user.karma < 0 ? 'red' : '#6c8d00', 'карма');
+				else {
+					let k = user.karma === 'r' ? 'read-only' : (user.karma === 'n' ? 'нет реги' : user.karma);
+					addInfo(k, '#898D92', 'карма', k === 'read-only' ? 'https://habr.com/users/' +user.nickname+ '/' : 0);
+				}
+				done = true;
+				list.querySelectorAll('li').forEach(e=>{
+					e.style.width = '95px';
+				});
+			}
+		});
+	}
+	checkInfo();
+	let cnt = 0;
+	let id = setInterval(e=>{
+		if (done || cnt > 30) return clearInterval(id);
+		cnt++;
+		checkInfo();
+	}, 500);
+}
+
 
 d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	checkPoint('<--- LOAD EVENT');
@@ -1373,6 +1592,8 @@ d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	}
 	else {
 		if (!URL.match(/^user\/.*\/questions/)) listenOnOptions(parse_questions);
+		if (URL.match(/^user\/.*\/answers/)) listenOnOptions(parse_anwer_colors);
+		if (URL.match(/^user\//)) listenOnOptions(parse_user_profile);
 		if (URL=='questions')g_status='all';
 		if (URL=='my/feed')g_status='feed';
 		if (URL=='users' || URL.indexOf('users/main')===0) {
@@ -1427,6 +1648,13 @@ const css_global = `
 	z-index: 999999;
 	box-shadow: 3px 3px 3px rgba(0, 0, 0, .3);
 }
+
+.comfortLines {
+	position: absolute;
+	z-index: 999998;
+	pointer-events: none;
+}
+
 `;
 
 function sandbox(fn) {
