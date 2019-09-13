@@ -114,6 +114,9 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("sol_honor_replace",{master:'show_honor'});
 	init_checkbox("show_perc_sol_marks");
 	init_checkbox("show_respect");
+	init_checkbox("show_user_reg_date");
+	//init_checkbox("show_user_reg_toster");
+	//init_checkbox("show_user_reg_min",{master:'show_user_reg_date',master2:'show_user_reg_toster'});
 
 	
 	init_checkbox("cut_karma");
@@ -146,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("is_options_button",{master:'is_widget'});
 	init_checkbox("is_search",{master:'is_widget'});
 	init_checkbox("read_q",{master:'is_widget'});
+	init_checkbox("show_rules",{master:'is_widget'});
 	init_checkbox("check_online",{master:'is_widget',master2:'faster_page_1'});
 	init_checkbox("hide_solutions");
 	init_checkbox("save_form_to_storage");
@@ -198,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("mark_answers_count",{master:'mark_anwers_by_color'});
 	init_checkbox("add_comment_lines");
 	init_checkbox("change_user_background");
+	init_checkbox("short_tags");
 
 	//datetime
 	init_checkbox("datetime_replace");

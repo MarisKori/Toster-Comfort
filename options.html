@@ -144,7 +144,19 @@ textarea {
 			</label>
 			<label for="show_respect">
 				<input id="show_respect" type="checkbox">
-				Показывать соотношение вклада к ответам (средний вклад на ответ) <span class=new>(new!)</span>
+				Показывать среднее количество лайков на ответ <span class=new>(new!)</span>
+			</label>
+			<label for="show_user_reg_date">
+				<input id="show_user_reg_date" type="checkbox">
+				Показывать время регистрации на Хабре <span class=new>(new!)</span>
+			</label>
+			<label for="show_user_reg_toster" class="disabled">
+				<input id="show_user_reg_toster" type="checkbox" disabled>
+				Показывать время регистрации на Тостере <b>(будет доступно в следующей версии)</b>
+			</label>
+			<label for="show_user_reg_min" class="disabled">
+				<input id="show_user_reg_min" type="checkbox" disabled>
+				Показывать минимальное время регистрации из этих двух ресурсов <b>(будет доступно в следующей версии)</b>
 			</label>
 		</div>
 		<div class="frame">
@@ -264,13 +276,17 @@ textarea {
 				<input id="is_options_button" type="checkbox">
 				Кнопка настроек
 			</label>
+			<label for="show_rules">
+				<input id="show_rules" type="checkbox">
+				Ссылка на правила Тостера <span class=new>(new!)</span>
+			</label>
 			<label for="is_search">
 				<input id="is_search" type="checkbox">
 				Поиск по своим вопросам и ответам
 			</label>
 			<label for="check_online">
 				<input id="check_online" type="checkbox">
-				Смотреть, кто онлайн (не рекомендуется)
+				Смотреть, кто онлайн (не рекомендуется, эксперимент, фича не доделана)
 			</label>
 			<label for="read_q">
 				<input id="read_q" type="checkbox">
@@ -344,20 +360,24 @@ textarea {
 		<div class="frame">
 			<label for="mark_anwers_by_color">
 				<input id="mark_anwers_by_color" type="checkbox">
-				Раскрашивать цветом ответы пользователя в его профиле по степени полезности <span class=new>(new!)</span>
+				Раскрашивать цветом ответы пользователя в его профиле по степени полезности
 			</label>
 			<label for="mark_answers_count">
 				<input id="mark_answers_count" type="checkbox">
-				Считать в профиле пользователя ответы разной степени полезности <span class=new>(new!)</span>
+				Считать в профиле пользователя ответы разной степени полезности
 			</label>
 		</div>
 		<label for="add_comment_lines">
 			<input id="add_comment_lines" type="checkbox">
-			Проводить визуальные линии к аватарам в каждой ветке комментариев <span class=new>(new!)</span>
+			Проводить визуальные линии к аватарам в каждой ветке комментариев
 		</label>
 		<label for="change_user_background">
 			<input id="change_user_background" type="checkbox">
-			Раскрашивать случайным цветом ответы и комментарии, чтобы различать их <span class=new>(new!)</span>
+			Раскрашивать случайным цветом ответы и комментарии, чтобы различать их
+		</label>
+		<label for="short_tags">
+			<input id="short_tags" type="checkbox">
+			Сокращать некоторые длинные названия тегов <span class=new>(new!)</span>
 		</label>
 	</div>
 
@@ -441,7 +461,7 @@ textarea {
 			Скрывать вопросы с решениями
 		</label>
 		<p>
-			Фильтр тегов (можно разделять <b>запятыми</b> или новыми строками):<br>
+			Фильтр тегов (можно разделять запятыми или новыми строками):<br>
 			<textarea id="tag_blacklist" cols=100 rows=5></textarea>
 		</p>
 

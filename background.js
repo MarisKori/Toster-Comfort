@@ -1,7 +1,16 @@
+let log=console.log;
 
 function clearString(str) {
 	return str.length < 12 ? str : (' ' + str).slice(1);
 }
+
+let rps = 0;
+setInterval(e=>{
+	if (rps >= 10) log('RPS:',rps);
+	rps -= 10;
+	if (rps < 0) rps = 0;
+},1000);
+
 
 function getURL(url,callback, on_fail) {
 	//console.log('URL:',url);
@@ -23,7 +32,17 @@ function getURL(url,callback, on_fail) {
 		//console.log('timeout');
 	//}
 	xhr.open("GET", url, true);
-	xhr.send();
+	xhr.send(); rps++;
+}
+
+let leadingZero = function(num) {
+	let s = "0" + num;
+	if (s.length > 2) return num;
+	return s;
+}
+let logg = function() { //Выводим лог с меткой времени.
+	let dt = new Date();
+	log(dt.getHours()+':'+leadingZero(dt.getMinutes())+':'+leadingZero(dt.getSeconds()),...arguments);
 }
 
 const DAY_TIME = 24*60*60*1000;
@@ -85,6 +104,12 @@ function saveDB(no_pause) {
 	}
 	if ((now - db_saved_called > MAX_DB_TIMEOUT)||no_pause) saveDB_Now();
 	else saveDB_timer = setTimeout(saveDB_Now,15000);
+}
+
+const C_MONTHS = {
+	['января']: 'Jan', ['февраля']: 'Feb', ['марта']: 'Mar', ['апреля']: 'Apr',
+	['мая']: 'May', ['июня']: 'Jun', ['июля']: 'Jul', ['августа']: 'Aug',
+	['сентября']: 'Sep', ['октября']: 'Oct', ['ноября']: 'Nov', ['декабря']: 'Dec',
 }
 
 if (localStorage.cut_karma === undefined) localStorage.cut_karma = 1;
@@ -159,8 +184,23 @@ function updateUser(nickname,timeout) {
 			if (a) {
 				user.stat_comment = parseInt(a[1]);
 			}
+			a = text.match(/Зарегистрирован<\/span>[\s\n]*<span class="defination-list__value">(.*?)<\/span>/);
+			if (a) {
+				//console.log('Time:',a[1]);
+				let date_str = a[1].replace(' г.','');
+				for(let k in C_MONTHS) if (date_str.indexOf(k) !== -1) {
+					//console.log('found',date_str.indexOf(k));
+					date_str = date_str.replace(k, C_MONTHS[k]);
+					break;
+				}
+				let date = Date.parse(date_str);
+				if (!date) console.log('Error parsing date:',clearString(a[1]),date_str);
+				else {
+					user.reg = Math.floor(date / 1000);
+				}
+			}
 		}, ()=>{ //todo: такой статус нужен лишь при ответе 404
-			delete user.karma_pending; user.karma = 'не зарегистр.';
+			delete user.karma_pending; user.karma = 'n';
 		});
 	}
 }
@@ -177,7 +217,7 @@ function parseTags(txt) {
 }
 
 //todo: удалить tracker_q_ids
-function analyzeQuestion(question_id, now, is_fresh) {
+function analyzeQuestion(question_id, now, is_fresh) { //logg('Analize!')
 	if (question_id<10) return console.log("q_id too low:",question_id); //throw "q_id too low: "+question_id;
 	let add_e = !is_fresh ? '?e='+Math.floor(Math.random()*6566811 + 1000000) : '';
 	if (!now) now = (new Date()).getTime();
@@ -198,6 +238,7 @@ function analyzeQuestion(question_id, now, is_fresh) {
 			let txt = text.substring(index_title + index_title_str.length + 1, index_title2).trim();
 			if (txt) q.t = clearString(txt); //title!
 		}
+		//logg('Analized',q.t);
 		//get user name
 		let index_name = text.indexOf('<meta itemprop="name" content="');
 		if (index_name > -1) {
@@ -264,7 +305,10 @@ function analyzeQuestion(question_id, now, is_fresh) {
 		}
 		//check all users
 		
-	}, e=>{ delete q.is_pending; } );
+	}, e=>{
+		log('ERROR:', xhr.status);
+		delete q.is_pending;
+	} );
 	return q;
 }
 
@@ -464,7 +508,6 @@ function updateUserTagsCache(nick) {
 		//else tags.splice(maxtag+1);
 		data.tags = tags;
 		data.cnt = maxtag+1; //tags.length;
-		console.log(data)
 	}, ()=>{ //console.log('onFail');
 		cache.is_pending = false;
 	});
@@ -557,7 +600,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 					user.ach = is_achiever;
 				}
 				u[nickname] = user;
-				user.respect = user.cnt_a && Math.round(user.con / user.cnt_a * 10) * 0.1 || 0;
+				//user.respect = user.cnt_a && Math.round(user.con / user.cnt_a * 10) * 0.1 || 0;
 			}
 			if (request.arr[nickname] === 1) { //Принудительное обновление, если 1, а не просто true.
 				//console.log('Fast update:',nickname);
@@ -644,6 +687,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 			}
 		}
 		online_like = obj;
+		sendResponse();
 	} else if (request.type == "disableNotifications") {
 		localStorage.enable_notifications = 0;
 	} else if (request.type == "updateIconNum") {
@@ -717,6 +761,7 @@ const TOSTER_OPTIONS = [
 	'show_psycho','show_honor','sol_honor_replace','psycho_summary','psycho_tags',
 	'mark_anwers_by_color','mark_answers_count',
 	'add_comment_lines','change_user_background','show_respect',
+	'show_user_reg_date','short_tags','show_rules','show_user_reg_toster','show_user_reg_min',
 ];
 
 const HABR_OPTIONS = [
@@ -729,6 +774,7 @@ if (localStorage.show_ban_info === undefined) { //last added option
 		'show_habr','show_nickname','fixed_a_bug','always_notify_my_questions','show_blue_circle','notify_mention','notify_expert',
 		'is_widget','is_options_button','is_search','top24_show','read_q','show_psycho','show_status_achiever','show_cnt_questions',
 		'show_cnt_answers','show_perc_solutions','show_perc_sol_marks','show_ban_info','psycho_summary',
+		'show_rules',
 		//Habr options
 		//move_posttime_down, move_stats_up, hide_comment_form_by_default, habr_fix_lines
 	];
@@ -939,7 +985,7 @@ function updateNitificationsMyFeed(now) {
 	let xhr = new XMLHttpRequest();
 	const url = 'https://toster.ru/my/feed';
 	xhr.open('GET', url, true);
-	xhr.send();
+	xhr.send(); rps++;
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
 		if (localStorage.faster_my_feed == 1) {
@@ -1017,7 +1063,7 @@ function updateNitificationsFilterAll(now) {
 	let xhr = new XMLHttpRequest();
 	const url = 'https://toster.ru/questions';
 	xhr.open('GET', url, true);
-	xhr.send();
+	xhr.send(); rps++;
 	xhr.onload = function() {
 		if (xhr.status != 200) return;
 		if (localStorage.faster_page_1 == 1) {
@@ -1065,7 +1111,7 @@ function updateNitificationsFilterAll(now) {
 		}
 		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
 		let m;
-		let arr=[];
+		//let arr=[];
 		let online=localStorage.check_online && localStorage.is_widget;
 		while (m = r.exec(xhr.response)) {
 			let q_id = m[1]-0;
@@ -1073,7 +1119,7 @@ function updateNitificationsFilterAll(now) {
 			let date = m[3].trim();
 			let views = m[4]-0;
 			let answers = m[5]-0;
-			arr.push(1);
+			//arr.push(1);
 			/*arr.push({
 				id:q_id,
 				is_q:!!db.question[q_id],
@@ -1083,7 +1129,8 @@ function updateNitificationsFilterAll(now) {
 				q:db.question[q_id],
 			});*/
 			let q = db.question[q_id];
-			if (!q || online && answers>0 && (!q.cnt_a||q.cnt_a<answers)) {
+			if (q) log(q.ut, now > q.ut + 2.5 * 60000, Math.round((now - (q.ut + 2.5 * 60000))/1000));
+			if (!q || online && answers>0 && (!q.cnt_a||q.cnt_a != answers||now > q.ut + 2.5 * 60000)) {
 				q = analyzeQuestion(q_id);
 				q.t = title;
 				if (getFreshTime(date) <= 10) {
@@ -1095,7 +1142,7 @@ function updateNitificationsFilterAll(now) {
 			}
 			q.cnt_a = answers;
 			q.v = views;
-			q.ut = now;
+			//q.ut = now;
 			if (getFreshTime(date) > 10) continue;
 			checkQuestion(q_id);
 		}
@@ -1148,7 +1195,7 @@ function updateNotificationOptions() {
 			//start_page++;
 			//if (start_page>75) start_page=75;
 			xhr.open('GET', url, true);
-			xhr.send();
+			xhr.send(); rps++;
 			xhr.onload = function() {
 				tracker_q_visited = true;
 				let now = (new Date()).getTime();
@@ -1221,7 +1268,7 @@ function updateNotificationOptions() {
 						if (!Q_id) console.warn('Q_id=',Q_id,'html:',html);
 						q = analyzeQuestion(Q_id, now);
 						q.t = Q_title;
-					} else q.ut = now;
+					} //else q.ut = now;
 					let renamed, noticed;
 					if (false) { //Из-за запредельной глючности в связи с кривой базой Тостера, лучше вообще отключить.
 						if (!q.t || q.t != Q_title && q.t.replace('«','"').replace('»','"').replace('—','-').replace('>','&gt;') != Q_title) {
@@ -1344,7 +1391,7 @@ function updateNotificationOptions() {
 						//q.ut = now; //if (!q.is_pending) 
 						if (!q.e || q.e < e) { //Новые данные
 							q.e = e;
-							q.ut = now;
+							//q.ut = now;
 							let notif = arr_notifications[Q_id];
 							if(!notif) {
 								notif = {
@@ -1487,7 +1534,7 @@ function test_like()
 	let xhr = new XMLHttpRequest();
 	let url = 'https://toster.ru/answer/like?answer_id=56';
 	xhr.open('POST', url, true);
-	xhr.send();
+	xhr.send(); rps++;
 	xhr.onload = function() {
 		console.log(xhr.status,xhr.responseText);
 	}
@@ -1497,7 +1544,7 @@ function test_unlike()
 	let xhr = new XMLHttpRequest();
 	let url = 'https://toster.ru/answer/cancel_like?answer_id=1384993';
 	xhr.open('POST', url, true);
-	xhr.send('');
+	xhr.send(''); rps++;
 	xhr.onload = function() {
 		console.log(xhr.status,xhr.responseText);
 	}
@@ -1508,7 +1555,7 @@ function test_post()
 	let xhr = new XMLHttpRequest();
 	let url = 'https://toster.ru/answer/likers_list?answer_id=56';
 	xhr.open('POST', url, true);
-	xhr.send('');
+	xhr.send(''); rps++;
 	xhr.onload = function() {
 		console.log(xhr.status,xhr.responseText);
 	}

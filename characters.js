@@ -486,7 +486,7 @@ var CHARACTERS = {
 	},
 }
 
-//*
+/*
 let cnt = 0;
 for(let k in CHARACTERS) {
 	let char = CHARACTERS[k];
