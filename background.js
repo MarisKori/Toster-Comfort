@@ -5,7 +5,7 @@ function clearString(str) {
 }
 
 let rps = 0;
-setInterval(e=>{
+if (0) setInterval(e=>{
 	if (rps >= 10) log('RPS:',rps);
 	rps -= 10;
 	if (rps < 0) rps = 0;
@@ -306,7 +306,7 @@ function analyzeQuestion(question_id, now, is_fresh) { //logg('Analize!')
 		//check all users
 		
 	}, e=>{
-		log('ERROR:', xhr.status);
+		//log('ERROR:', xhr.status);
 		delete q.is_pending;
 	} );
 	return q;
@@ -1129,7 +1129,7 @@ function updateNitificationsFilterAll(now) {
 				q:db.question[q_id],
 			});*/
 			let q = db.question[q_id];
-			if (q) log(q.ut, now > q.ut + 2.5 * 60000, Math.round((now - (q.ut + 2.5 * 60000))/1000));
+			//if (q) log(q.ut, now > q.ut + 2.5 * 60000, Math.round((now - (q.ut + 2.5 * 60000))/1000));
 			if (!q || online && answers>0 && (!q.cnt_a||q.cnt_a != answers||now > q.ut + 2.5 * 60000)) {
 				q = analyzeQuestion(q_id);
 				q.t = title;
@@ -1142,7 +1142,7 @@ function updateNitificationsFilterAll(now) {
 			}
 			q.cnt_a = answers;
 			q.v = views;
-			//q.ut = now;
+			q.ut = now; //jj: мешает перепроверки для поиска онлайн пользователей?
 			if (getFreshTime(date) > 10) continue;
 			checkQuestion(q_id);
 		}
@@ -1268,7 +1268,7 @@ function updateNotificationOptions() {
 						if (!Q_id) console.warn('Q_id=',Q_id,'html:',html);
 						q = analyzeQuestion(Q_id, now);
 						q.t = Q_title;
-					} //else q.ut = now;
+					} else q.ut = now; //jj: check online?
 					let renamed, noticed;
 					if (false) { //Из-за запредельной глючности в связи с кривой базой Тостера, лучше вообще отключить.
 						if (!q.t || q.t != Q_title && q.t.replace('«','"').replace('»','"').replace('—','-').replace('>','&gt;') != Q_title) {
@@ -1391,7 +1391,7 @@ function updateNotificationOptions() {
 						//q.ut = now; //if (!q.is_pending) 
 						if (!q.e || q.e < e) { //Новые данные
 							q.e = e;
-							//q.ut = now;
+							q.ut = now;
 							let notif = arr_notifications[Q_id];
 							if(!notif) {
 								notif = {
