@@ -134,7 +134,7 @@ function updateUser(nickname,timeout) {
 		user.solutions_pending = true;
 		saveDB();
 		let old_perc_sol_marks = localStorage.old_perc_sol_marks === '1';
-		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{ log('User:',nickname);
+		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{ //log('User:',nickname);
 			delete user.solutions_pending;
 			//solutions
 			//let r = /\s*(\d+)\s{8}<\/div>/g; //todo: very very bad, need better algorytm!
@@ -155,13 +155,13 @@ function updateUser(nickname,timeout) {
 				if (is_sol) { cnt++; continue; }
 				//проверка сложности. Простые +0, Средние +0.25, Сложные +0.5 очков.
 				let complex = old_perc_sol_marks ? 0 : t.match(/<span class="question__complexity-text">\s*(.*?)\s*<\/span>/);
-				if (complex) { log(complex[1]); complex = complex[1] === 'Средний' ? 0.25 : complex[1] === 'Сложный' ? 0.5 : 0; }
-				else complex = 0; log('complex',complex);
+				if (complex) { complex = complex[1] === 'Средний' ? 0.25 : complex[1] === 'Сложный' ? 0.5 : 0; }
+				else complex = 0; //log('complex',complex);
 				cnt += complex;
 			}
 			freeRegExp(); //log('sum=',sum);
 			if (!sum) user.solutions = '-1'; //impossible
-			else user.solutions = Math.floor( cnt / sum * 100 + 0.5); log(user.solutions+'%', cnt, sum)
+			else user.solutions = Math.floor( cnt / sum * 100 + 0.5); //log(user.solutions+'%', cnt, sum)
 			//stats
 			a = text.match(/<a href="\/help\/rating" class="mini-counter__rating">[\s\S]*?(\d+)[\s]*<\/a>[\s\S]*?<li class="inline-list__item inline-list__item_bordered">[\s\S]*?<meta itemprop="interactionCount"[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
 			if (a) {
