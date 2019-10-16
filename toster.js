@@ -25,6 +25,20 @@ function clearString(s) {
 	return s.length < 12 ? s : (' ' + s).slice(1);
 }
 
+//Простейшая система событий
+let TheWorld = {
+	listeners:{},
+	AddEvent:function(name,fn) {
+		if (!this.listeners[name]) {
+			this.listeners[name] = [];
+		}
+		this.listeners[name].push(fn);
+	},
+	PushEvent:function(name) {
+		this.listeners[name].forEach(fn=>fn());
+	},
+}
+
 //FireFox check is page is loaded
 const fixFirefox = !did('toster-comfort-sign');
 
@@ -103,7 +117,7 @@ function user_html(user,no_name) {
 				+user.cnt_s+'%">'+user.cnt_s+'%</font>':'')
 			+(OPTIONS.show_honor && OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
 				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
-			+(!OPTIONS.show_perc_sol_marks?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
+			+(!OPTIONS.show_perc_sol_marks?'':user.solutions==-1?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
 				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>')
 			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://toster.ru/user/'+user.nickname
 				+'" title="Лайков на ответ: '+(user.respect).toFixed(1)
@@ -1356,6 +1370,13 @@ function addCanvasToComments() {
 		let arr1 = [...d.querySelectorAll('.answer__comments')];
 		let arr2 = [...d.querySelectorAll('.question__comments')];
 		arr1.concat(arr2).forEach(e=>{
+			setTimeout(()=>{ //Предвкушаем быструю загрузку, хотя это может быть не так!
+				let e_rect = e.getBoundingClientRect();
+				if (e.is_canvas_created && e_rect.height != e.canvas_created_height) {
+					removeCanvas(e);
+					checkCommentCanvas();
+				}
+			},1000);
 			if (e.is_canvas_created) return; //log('aready done'); log('start process');
 			let e_rect = e.getBoundingClientRect();
 			if (e_rect.left == 0) return;
@@ -1445,6 +1466,11 @@ function addCanvasToComments() {
 			}
 		},0);
 	}));
+	buttons = d.querySelectorAll('.spoiler_title');
+	buttons.forEach(e=>e.addEventListener('click',e=>{
+		if (!(e = removeCanvas(e.target))) return;
+		setTimeout(checkCommentCanvas,1000);
+	}));
 	buttons = null;
 	function patchButtons() {
 		var buttons = d.querySelectorAll('button.btn');
@@ -1460,13 +1486,13 @@ function addCanvasToComments() {
 				let cnt = 0;
 				let id = setInterval(()=> {
 					cnt++;
-					if (cnt > 100) return clearInterval(id);
+					if (cnt > 99) return clearInterval(id);
 					let rect = e.getBoundingClientRect();
 					if (rect.height != e.canvas_created_height) {
 						cnt = 99;
 						checkCommentCanvas();
 					}
-				},0);
+				},100);
 			});
 		});
 	}
@@ -1726,7 +1752,7 @@ function parse_user_profile() {
 			let user = data[nickname];
 			if (!user || user.solutions === undefined) return;
 			if (done < 1) {
-				addInfo(user.solutions+'%', 'black', 'вежливость');
+				if (user.solutions != -1) addInfo(user.solutions+'%', 'black', 'отметки', 'https://github.com/MarisKori/Toster-Comfort/wiki');
 				let respect = countRespect(user);
 				addInfo(respect.toFixed(1), '#ff9040', 'польза');
 				done = 1;
@@ -1855,60 +1881,11 @@ let timer1;// = setInterval(fn_test,5);
 
 //Go online
 
-const random_answer = 1442466; //1283582; //1282990;
-
-//let skip_err_max=0,skip_err_cnt=0;
-function checkOnlineUsers() { //log('checkOnlineUsers')
+function checkOnlineUsers() {
 	return; //Эксперимент не удался. Функция не должна работать.
-	let xhr = new XMLHttpRequest();
-	let url = 'https://toster.ru/answer/likers_list';
-	xhr.open('POST', url, true);
-	xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
-	xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-	xhr.setRequestHeader('Accept', 'text/html, */*; q=0.01');
-	xhr.send('answer_id='+random_answer);
-	xhr.onload = function() { log('onload',xhr);
-		//console.log(xhr.status,xhr.responseText.length);
-		let txt;
-		if (xhr.responseText.indexOf('<!DOCTYPE html>') === 0) {
-			txt = 'error ('+xhr.responseText.length+')';
-			let m = xhr.responseText.match(/<\/div>\s*(.*?)\s*<\/div>\s*<\/div>\s*<aside class="column_sidebar">/);
-			if (m) {
-				txt = clearString(m[1]);
-			}
-		} else txt = xhr.responseText;
-		log('result:',{code:xhr.status,res:txt});
-		if(xhr.status!=200)return;
-		let imgs={};
-		let a = txt.match(/<img src="https?:\/\/habrastorage\.org\/[^"]+" alt="[^"]+/g);
-		if(a)a.forEach(s=>{
-			let m=s.match(/<img src="https?:\/\/habrastorage\.org\/([^"]+)" alt="([^"]+)/);
-			imgs[m[2]]=clearString(m[1]);
-		});
-		
-		let users = {};
-		a = txt.match(/<a class="user-summary__name" href="https?:\/\/toster\.ru\/user\/[^"]+">/g);
-		if(a)a.forEach(s=>{
-			let m=s.match(/user\/([^"]+)">/);
-			let nick=clearString(m[1]);
-			let user = {nick:nick};
-			if (imgs[nick])user.img=imgs[nick];
-			users[nick]=user;
-		});
-		chrome.runtime.sendMessage({type: "checkOnline", obj: users});
-	}
 }
-
-//let skip_err_max=0,skip_err_cnt=0;
-function voteOnline(act) { //log('voteOnline',act)
+function voteOnline(act) {
 	return; //Эксперимент не удался. Функция не должна работать.
-	if(!owner || owner=='dollar')return;
-	let xhr = new XMLHttpRequest();
-	let url = 'https://toster.ru/answer/'+(act==1?'like':'cancel_like')+'?answer_id='+random_answer;
-	xhr.open('POST', url, true);
-	xhr.send();
-	//xhr.onload = ()=>{ console.log(xhr.responseText) };
-	//xhr.oneror = ()=>{ console.log('Error:',xhr.readyState,xhr.status) };
 }
 
 let cached_user_tags = {}

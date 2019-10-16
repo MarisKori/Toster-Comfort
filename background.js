@@ -78,6 +78,9 @@ function clean_db(timeout_days) {
 		if (!(now - q.ut < timeout)) delete db.question[id]; // n days
 	}
 }
+function clean_db_users() {
+	db.user = {};
+}
 
 
 const MAX_DB_TIMEOUT = 60000;
@@ -130,20 +133,35 @@ function updateUser(nickname,timeout) {
 	if (need_update || user.solutions === undefined && !user.solutions_pending) {
 		user.solutions_pending = true;
 		saveDB();
-		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{
+		let old_perc_sol_marks = localStorage.old_perc_sol_marks === '1';
+		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{ log('User:',nickname);
 			delete user.solutions_pending;
 			//solutions
-			let r = /\s*(\d+)\s*<\/div>/g; //todo: very very bad, need better algorytm!
+			//let r = /\s*(\d+)\s{8}<\/div>/g; //todo: very very bad, need better algorytm!
+			let r = /<li class="content-list__item" role="content-list_item"([\s\S]*?)<\/div>\s*<\/li>/g;
 			let a;
-			let sum = 0;
+			let sum = 0, cnt = 0;
 			while ((a = r.exec(text)) !== null) {
-				if (a[1] !== "0") sum++; //count questions with at least 1 answer
+				let t = a[1];
+				//вопросы без ответов не учитываются
+				let sol = t.match(/\s*(\d+)\s{8}<\/div>/);
+				if (sol[1] === '0') continue;
+				//сегодняшние вопросы не учитываются
+				let tm = t.match(/\s*(.*?)\s*<\/time>/);
+				if (tm[1] == 'только что' || tm[1].indexOf('минут') !== -1 || tm[1].indexOf('час') !== -1) continue;
+				sum++;
+				//решения считаем как 1 очко
+				let is_sol = t.match(/icon_svg icon_check/);
+				if (is_sol) { cnt++; continue; }
+				//проверка сложности. Простые +0, Средние +0.25, Сложные +0.5 очков.
+				let complex = old_perc_sol_marks ? 0 : t.match(/<span class="question__complexity-text">\s*(.*?)\s*<\/span>/);
+				if (complex) { log(complex[1]); complex = complex[1] === 'Средний' ? 0.25 : complex[1] === 'Сложный' ? 0.5 : 0; }
+				else complex = 0; log('complex',complex);
+				cnt += complex;
 			}
-			freeRegExp();
-			a = text.match(/icon_svg icon_check/g);
-			let cnt = a && a.length || 0;
-			if (!sum) user.solutions = '0';
-			else user.solutions = Math.floor( cnt / sum * 100);
+			freeRegExp(); //log('sum=',sum);
+			if (!sum) user.solutions = '-1'; //impossible
+			else user.solutions = Math.floor( cnt / sum * 100 + 0.5); log(user.solutions+'%', cnt, sum)
 			//stats
 			a = text.match(/<a href="\/help\/rating" class="mini-counter__rating">[\s\S]*?(\d+)[\s]*<\/a>[\s\S]*?<li class="inline-list__item inline-list__item_bordered">[\s\S]*?<meta itemprop="interactionCount"[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
 			if (a) {
@@ -1165,6 +1183,11 @@ String.prototype.fastHashCode = function() {
 let events_list_navbar = ''; //events-list_navbar innerHTML
 let events_list_navbar_hash = 0;
 
+
+let bad_error_pause = 3;
+let bad_error_tm_last = 0;
+
+
 chrome.browserAction.setBadgeBackgroundColor({color:"#777"});
 var arr_notifications = {};
 let notifications_timer;
@@ -1186,7 +1209,8 @@ function updateNotificationOptions() {
 	if (localStorage.enable_notifications == 1) {
 		//console.log('notifications enabled');
 		notifications_timer = setInterval(()=>{
-			//let now = (new Date()).getTime();
+			let now = (new Date()).getTime();
+			if (now - bad_error_tm_last < bad_error_pause*1000) return log('skip');
 			//if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
 			let xhr = new XMLHttpRequest();
 			let url = 'https://toster.ru/my/tracker';
@@ -1194,9 +1218,18 @@ function updateNotificationOptions() {
 			//console.log('----------Страница:',start_page);
 			//start_page++;
 			//if (start_page>75) start_page=75;
+			
 			xhr.open('GET', url, true);
-			xhr.send(); rps++;
-			xhr.onload = function() {
+			xhr.send(); rps++; //logg('send');
+			xhr.onerror = ()=>{
+				return; //Эта функция нужна, чтобы плавно форсировать бан по ip.
+				//Но если держать RPS в пределах нормы, то этого не должно произойти.
+				logg('onerror',xhr.status);
+				bad_error_pause += 3600;
+				logg('New pause =',bad_error_pause);
+				bad_error_tm_last = now;
+			}
+			xhr.onload = function() { //logg('onload',xhr.status)
 				tracker_q_visited = true;
 				let now = (new Date()).getTime();
 				if (xhr.status != 200) return;

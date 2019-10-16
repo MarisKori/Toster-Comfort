@@ -68,7 +68,7 @@ textarea {
 #tabs, #open { ddisplay:none; }
 .hidden {display: none;}
 </style>
-</head><body>
+</head><body> <!--  <span class=new>(new!)</span> -->
 <div id="tabs">
 	<div class="tab whiteborder">О расширении</div>
 	<div class="tab">Пользователи</div>
@@ -142,21 +142,25 @@ textarea {
 				<input id="show_perc_sol_marks" type="checkbox">
 				<b>Показывать процент вопросов, в которых пользователь выбрал решение</b>
 			</label>
+			<label for="old_perc_sol_marks">
+				<input id="old_perc_sol_marks" type="checkbox">
+				Старый способ подсчета выбранных решений (без учета сложности)
+			</label>
 			<label for="show_respect">
 				<input id="show_respect" type="checkbox">
-				Показывать среднее количество лайков на ответ <span class=new>(new!)</span>
+				Показывать среднее количество лайков на ответ
 			</label>
 			<label for="show_user_reg_date">
 				<input id="show_user_reg_date" type="checkbox">
-				Показывать время регистрации на Хабре <span class=new>(new!)</span>
+				Показывать время регистрации на Хабре
 			</label>
 			<label for="show_user_reg_toster" class="disabled">
 				<input id="show_user_reg_toster" type="checkbox" disabled>
-				Показывать время регистрации на Тостере <b>(будет доступно в следующей версии)</b>
+				Показывать время регистрации на Тостере <b>(пока не доступно)</b>
 			</label>
 			<label for="show_user_reg_min" class="disabled">
 				<input id="show_user_reg_min" type="checkbox" disabled>
-				Показывать минимальное время регистрации из этих двух ресурсов <b>(будет доступно в следующей версии)</b>
+				Показывать минимальное время регистрации из этих двух ресурсов <b>(пока не доступно)</b>
 			</label>
 		</div>
 		<div class="frame">
@@ -278,7 +282,7 @@ textarea {
 			</label>
 			<label for="show_rules">
 				<input id="show_rules" type="checkbox">
-				Ссылка на правила Тостера <span class=new>(new!)</span>
+				Ссылка на правила Тостера
 			</label>
 			<label for="is_search">
 				<input id="is_search" type="checkbox">
@@ -377,7 +381,7 @@ textarea {
 		</label>
 		<label for="short_tags">
 			<input id="short_tags" type="checkbox">
-			Сокращать некоторые длинные названия тегов <span class=new>(new!)</span>
+			Сокращать некоторые длинные названия тегов
 		</label>
 	</div>
 

@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	init_checkbox("show_perc_solutions");
 	init_checkbox("sol_honor_replace",{master:'show_honor'});
 	init_checkbox("show_perc_sol_marks");
+	init_checkbox("old_perc_sol_marks",{update:'clean_db_users'});
 	init_checkbox("show_respect");
 	init_checkbox("show_user_reg_date");
 	//init_checkbox("show_user_reg_toster");
