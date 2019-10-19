@@ -140,28 +140,42 @@ function updateUser(nickname,timeout) {
 			//let r = /\s*(\d+)\s{8}<\/div>/g; //todo: very very bad, need better algorytm!
 			let r = /<li class="content-list__item" role="content-list_item"([\s\S]*?)<\/div>\s*<\/li>/g;
 			let a;
-			let sum = 0, cnt = 0;
+			let sum = 0, cnt = 0, score = 0; //кол-во нормальных вопросов, кол-во решений, сумма очков
 			while ((a = r.exec(text)) !== null) {
 				let t = a[1];
 				//вопросы без ответов не учитываются
 				let sol = t.match(/\s*(\d+)\s{8}<\/div>/);
+				if (!sol) { log('user parse error',nickname,t); break; }
 				if (sol[1] === '0') continue;
-				//сегодняшние вопросы не учитываются
-				let tm = t.match(/\s*(.*?)\s*<\/time>/);
-				if (tm[1] == 'только что' || tm[1].indexOf('минут') !== -1 || tm[1].indexOf('час') !== -1) continue;
-				sum++;
 				//решения считаем как 1 очко
 				let is_sol = t.match(/icon_svg icon_check/);
-				if (is_sol) { cnt++; continue; }
+				if (is_sol) { sum++; cnt++; score++; continue; }
+				//сегодняшние вопросы не учитываются
+				let tm = t.match(/\s*(.*?)\s*<\/time>/);
+				if (!tm) { log('user parse error',nickname,t); break; }
+				if (tm[1] == 'только что' || tm[1].indexOf('минут') !== -1 || tm[1].indexOf('час') !== -1) continue;
+				sum++;
 				//проверка сложности. Простые +0, Средние +0.25, Сложные +0.5 очков.
 				let complex = old_perc_sol_marks ? 0 : t.match(/<span class="question__complexity-text">\s*(.*?)\s*<\/span>/);
 				if (complex) { complex = complex[1] === 'Средний' ? 0.25 : complex[1] === 'Сложный' ? 0.5 : 0; }
 				else complex = 0; //log('complex',complex);
-				cnt += complex;
+				score += complex;
 			}
 			freeRegExp(); //log('sum=',sum);
 			if (!sum) user.solutions = '-1'; //impossible
-			else user.solutions = Math.floor( cnt / sum * 100 + 0.5); //log(user.solutions+'%', cnt, sum)
+			else {
+				if (cnt < 4) {
+					if (cnt == 0) score = 0;
+					else {
+						let koef = cnt == 1 ? 0.5 : cnt == 2 ? 0.75 : 0.9; //максимальный понижающий коэффициент для доп. очков
+						let max = 20 - cnt; //максимально свободных вопросов
+						let free = sum - cnt; //свободные вопросы
+						koef = (max - free) / max * (1 - koef) + koef; //корректируем коэффициент от количества свободных вопросов (1 .. 0.75 для 2 решений).
+						score = cnt + (score - cnt) * koef; //корректируем довесок очков.
+					}
+				}
+				user.solutions = Math.floor( score / sum * 100 + 0.5); //log(user.solutions+'%', cnt, sum)
+			}
 			//stats
 			a = text.match(/<a href="\/help\/rating" class="mini-counter__rating">[\s\S]*?(\d+)[\s]*<\/a>[\s\S]*?<li class="inline-list__item inline-list__item_bordered">[\s\S]*?<meta itemprop="interactionCount"[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count">(\d+)[\s\S]*?<div class="mini-counter__count mini-counter__count-solutions">(\d+)/);
 			if (a) {
@@ -508,7 +522,7 @@ function updateUserTagsCache(nick) {
 			if (tag.honor === 0) return;
 			tags.push(tag);
 		});
-		console.log('tags.length =',tags.length);
+		//console.log('tags.length =',tags.length);
 		//Отбираем значимые теги. Это те, которые до крутого излома.
 		let ratio = [];
 		for(let i=0;i<tags.length-2;i++){
@@ -521,7 +535,7 @@ function updateUserTagsCache(nick) {
 		for(let i=maxtag-1; i>=0; i--) {
 			if (ratio[i] > ratio[maxtag]) maxtag = i;
 		}
-		console.log(maxtag,ratio);
+		//console.log(maxtag,ratio);
 		//if (maxtag < 0) tags=[];
 		//else tags.splice(maxtag+1);
 		data.tags = tags;
