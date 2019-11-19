@@ -302,6 +302,9 @@ function update_questions(on_success, on_fail) {
 				if (rec.color) {
 					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
 					parent.style.backgroundColor = rec.color;
+					parent.style.paddingLeft = "30px";
+					parent.style.paddingRight = "30px";
+					parent.style.margin = "0 -30px";
 				}
 			});
 			elem_top_24.forEach(t=>{
