@@ -166,11 +166,12 @@ function user_html(user,no_name) {
 	return html;
 }
 
+//Сокращаем названия тегов
 const SHORT_TAGS_TABLE = {
 	['информационная безопасность']: 'ИБ',
 	['регулярные выражения'] : 'Рег. выражения',
 	['программирование']: 'Программ.',
-	['Компьютерные сети']: 'Сети',
+	['компьютерные сети']: 'Сети',
 	['google chrome']: 'Chrome',
 	['операционные системы']: 'ОС',
 	['системное администрирование']: 'Сис. админство',
@@ -198,6 +199,10 @@ const SHORT_TAGS_TABLE = {
 	['мобильные устройства']: 'Моб. устройства',
 	['сетевое оборудование']: 'Сет. оборудование',
 	['языки программирования']: 'ЯП',
+	['unity game engine']: 'Unity',
+	['интернет-реклама']: 'Реклама',
+	['сетевое оборудование']: 'Сет. оборудование',
+	['мобильная связь']: 'Моб. связь',
 }
 function makeShortTags(tag) {
 	return SHORT_TAGS_TABLE[tag.trim().toLowerCase()] || tag;
@@ -302,10 +307,10 @@ function update_questions(on_success, on_fail) {
 				if (rec.color) {
 					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
 					parent.style.backgroundColor = rec.color;
+					//Patch from d0kur0. Фиксит отступы текста от края подсветки
 					parent.style.paddingLeft = "30px";
 					parent.style.paddingRight = "30px";
-					parent.style.margin = "0 -30px";
-				}
+					parent.style.margin = "0 -30px";				}
 			});
 			elem_top_24.forEach(t=>{
 				if (t.tc_done == 2) return;
