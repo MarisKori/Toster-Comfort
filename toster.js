@@ -49,7 +49,7 @@ function removeA(arr,id) {
 			arr.splice(i, 1);
 		}
 	}
-    return arr;
+		return arr;
 }
 
 let NOW_DATE;
@@ -228,6 +228,7 @@ function makeTags(tags) {
 }
 
 //Скрыть элемент, либо просто затемнить (на белом фоне)
+/* old function that doesn't work anymore
 function hideElementClever(el) {
 	if (!OPTIONS.make_dark) {
 		el.style.display = 'none';
@@ -241,6 +242,19 @@ function hideElementClever(el) {
 	div.style.top = '0';
 	div.style.pointerEvents = 'none';
 	el.a(div);
+} */
+
+function hideElementClever(target) {
+  const relativeParent = target.offsetParent;
+  const hider = document.createElement('div');
+  hider.style.position = 'absolute';
+  hider.style.width = target.offsetWidth + 'px';
+  hider.style.height = target.offsetHeight + 'px';
+  hider.style.background = 'rgba(255,255,255,.7)';
+  hider.style.top = target.offsetTop + 'px';
+  hider.style.left = target.offsetLeft +'px';
+  hider.style.pointerEvents = 'none';
+  relativeParent.appendChild(hider);
 }
 
 function update_questions(on_success, on_fail) {
@@ -265,6 +279,9 @@ function update_questions(on_success, on_fail) {
 					if (found) {
 						q.tc_done = true;
 						let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+						parent.style.paddingLeft = "30px";
+						parent.style.paddingRight = "30px";
+						parent.style.margin = "0 -30px";
 						hideElementClever(parent)
 						//return;
 					}
@@ -273,6 +290,15 @@ function update_questions(on_success, on_fail) {
 				if (!rec) {
 					if (!q.tc_done) success = false;
 					return;
+				}
+				//Change color
+				if (rec.color) {
+					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+					parent.style.backgroundColor = rec.color;
+					//Patch from d0kur0. Фиксит отступы текста от края подсветки
+					parent.style.paddingLeft = "30px";
+					parent.style.paddingRight = "30px";
+					parent.style.margin = "0 -30px";
 				}
 				if (rec.hide && !q.tc_done) {
 					q.tc_done = true;
@@ -303,14 +329,6 @@ function update_questions(on_success, on_fail) {
 					q.tc_done = true;
 				}
 				else if (!q.tc_done) success = false;
-				//Change color
-				if (rec.color) {
-					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
-					parent.style.backgroundColor = rec.color;
-					//Patch from d0kur0. Фиксит отступы текста от края подсветки
-					parent.style.paddingLeft = "30px";
-					parent.style.paddingRight = "30px";
-					parent.style.margin = "0 -30px";				}
 			});
 			elem_top_24.forEach(t=>{
 				if (t.tc_done == 2) return;
@@ -1824,18 +1842,18 @@ if (fixFirefox) addCustomCSS(css_right_hide);
 
 const css_global = `
 .dot_sub {
-  height: 14px;
-  width: 14px;
-  background-color: #44f;
-  border-radius: 50%;
-  display: inline-block;
+	height: 14px;
+	width: 14px;
+	background-color: #44f;
+	border-radius: 50%;
+	display: inline-block;
 }
 .dot_sb {
-  height: 14px;
-  width: 14px;
-  background-color: #aaf;
-  border-radius: 50%;
-  display: inline-block;
+	height: 14px;
+	width: 14px;
+	background-color: #aaf;
+	border-radius: 50%;
+	display: inline-block;
 }
 .norma {
 	font-size:13px;
