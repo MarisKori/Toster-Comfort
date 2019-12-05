@@ -383,17 +383,19 @@ function checkCondition(cond, current_data) {
 	//Environment
 	let env;
 	if (current_data.u) {
+		let u = current_data.u;
+		let q = current_data.q;
 		env = {
-			questions: current_data.u.cnt_q || 999,
-			answers: current_data.u.cnt_a || 999,
-			solutions: current_data.u.solutions || 101,
-			karma: current_data.u.karma || 0,
-			comments: current_data.u.stat_comment || 0,
-			articles: current_data.u.stat_pub || 0,
-			nickname: current_data.u.nickname || '',
-			title: current_data.q.t || '', //текст вопроса
-			views: current_data.q.v || 0,
-			honor: current_data.q.con || -1,
+			questions: u.cnt_q == undefined ? 999 : u.cnt_q,
+			answers: u.cnt_a == undefined ? 999 : u.cnt_a,
+			solutions: u.solutions == undefined ? 101 : u.solutions,
+			karma: u.karma == undefined ? 0 : u.karma,
+			comments: u.stat_comment == undefined ? 0 : u.stat_comment,
+			articles: u.stat_pub == undefined ? 0 : u.stat_pub,
+			nickname: u.nickname || '',
+			title: q.t || '', //текст вопроса
+			views: q.v == undefined ? 0 : q.v,
+			honor: q.con == undefined ? -1 : q.con,
 		}
 		env.q = env.questions;
 		env.a = env.answers;
