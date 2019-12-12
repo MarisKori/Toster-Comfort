@@ -14,7 +14,7 @@
 	},
 
 	"permissions": [
-		"https://toster.ru/*", "https://habr.com/*", "notifications", "unlimitedStorage", "storage"
+		"https://qna.habr.com/*", "https://habr.com/*", "notifications", "unlimitedStorage", "storage"
 	],
 	"background": {
 		"scripts": ["characters.js", "background.js", "eval_lite.js"]
@@ -22,7 +22,7 @@
 	"content_scripts": [ {
 		"all_frames": true,
 		"js": [ "toster.js" ],
-		"matches": [ "https://toster.ru/*" ],
+		"matches": [ "https://qna.habr.com/*" ],
 		"run_at": "document_start"
 	}, {
 		"all_frames": true,
