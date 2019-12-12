@@ -105,21 +105,21 @@ function user_html(user,no_name) {
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
 		let honor = user.con || 0;
-		html += //https://toster.ru/user/dollar/tags
+		html += //https://qna.habr.com/user/dollar/tags
 			(OPTIONS.show_honor && !OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
-				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></a>':'')
-			+(!OPTIONS.show_cnt_questions?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname
+				+honor+'" href="https://qna.habr.com/user/'+user.nickname+'/tags"><b>'+honor+'</b></a>':'')
+			+(!OPTIONS.show_cnt_questions?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname
 				+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
 				+'</font></a>')
-			+(!OPTIONS.show_cnt_answers?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a
+			+(!OPTIONS.show_cnt_answers?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a
 				+'" class="norma">'+user.cnt_a+'</a>')
 			+(OPTIONS.show_perc_solutions && !OPTIONS.sol_honor_replace?' &nbsp;<font color=#65c178 style="font-size:13px;" title="Решений: '
 				+user.cnt_s+'%">'+user.cnt_s+'%</font>':'')
 			+(OPTIONS.show_honor && OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
-				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
-			+(!OPTIONS.show_perc_sol_marks?'':user.solutions==-1?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
+				+honor+'" href="https://qna.habr.com/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
+			+(!OPTIONS.show_perc_sol_marks?'':user.solutions==-1?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname+'/questions" title="Отметил решениями: '
 				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>')
-			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://toster.ru/user/'+user.nickname
+			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname
 				+'" title="Лайков на ответ: '+(user.respect).toFixed(1)
 				+'" class="norma" style="color:#ff9040">'+(user.respect).toFixed(1)+'</a>':'');
 	} else user_html_result = false;
@@ -222,7 +222,7 @@ function makeTags(tags) {
 		let li = c("LI");
 		li.className = 'tags-list__item';
 		let a = c("A",makeShortTags(tags[id]));
-		a.href = 'https://toster.ru/tag/' + id;
+		a.href = 'https://qna.habr.com/tag/' + id;
 		ul.a(li.a(a));
 	}
 	return ul;
@@ -632,7 +632,7 @@ function parse_q() {
 			request_user[nickname] = i==0 ? 1 : true;
 			//Предполагаем, что первый в списке - автор вопроса.
 			if (i == 0) {
-				let qm = location.href.match(/toster\.ru\/q\/(\d+)/);
+				let qm = location.href.match(/qna\.habr\.com\/q\/(\d+)/);
 				let tags = sel('.tags-list');
 				let q_title = sel('.question__title');
 				let grp = sel('.buttons-group_question');
@@ -712,10 +712,10 @@ function enable_save_form_to_storage() {
 	}
 	let q = Q;
 	if(!q) {
-		let m = location.href.match(/^https?:\/\/toster\.ru\/questionversion\/new\?question_id=(\d+)/);
+		let m = location.href.match(/^https?:\/\/qna\.habr\.com\/questionversion\/new\?question_id=(\d+)/);
 		if (m) q = m[1]-0;
 		else {
-			m = location.href.match(/^https?:\/\/toster\.ru\/question\/new/);
+			m = location.href.match(/^https?:\/\/qna\.habr\.com\/question\/new/);
 			if (m) q = 'new';	else return;
 		}
 	}
@@ -810,7 +810,7 @@ let window_focus = true;
 window.addEventListener("blur",e=>window_focus=false);
 window.addEventListener("focus",e=>window_focus=true);
 
-let R_Q_SEARCH = /<a class="question__title-link question__title-link_list" href="https?:\/\/toster\.ru\/q\/(\d+)">/;
+let R_Q_SEARCH = /<a class="question__title-link question__title-link_list" href="https?:\/\/qna\.habr\.com\/q\/(\d+)">/;
 let cache_page_1, cache_page_1_tm=0, cache_page_1_q=0, cache_page_1_q_hash=0,
 	cache_my_feed, cache_my_feed_tm, cache_my_feed_q=0, cache_my_feed_hash=0;
 function getInfo(info) {
@@ -859,7 +859,7 @@ function getInfo(info) {
 	if(info.users && OPTIONS.check_online){
 		while (div_online.firstChild) div_online.removeChild(div_online.firstChild);
 		info.users.forEach(u=>{
-			let a = div_online.a('a',0,{href:'https://toster.ru/user/'+u.nick+'/info'}).a('img',0,
+			let a = div_online.a('a',0,{href:'https://qna.habr.com/user/'+u.nick+'/info'}).a('img',0,
 				{src:u.img?'https://habrastorage.org/'+u.img:ext_url+'images/nouser.png', width:"35", height:"35"});
 		});
 		if(info.need_check)checkOnlineUsers();
@@ -909,8 +909,8 @@ function updateNotifications(is_first_time) {
 					if (item.q_id) {
 						let url = item.url;
 						if (!url) {
-							if (item.anchor) url = "https://toster.ru/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
-							else url = "https://toster.ru/q/"+item.q_id;
+							if (item.anchor) url = "https://qna.habr.com/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
+							else url = "https://qna.habr.com/q/"+item.q_id;
 						}
 						window.location.href = url;
 					}
@@ -942,8 +942,8 @@ function updateNotifications(is_first_time) {
 
 //Добавить кнопку "Следить", чтобы получать быстрые уведомления
 function addListenButton() {
-	if (location.href.indexOf('https://toster.ru/q/') == -1) return;
-	let m = location.href.match(/^https:\/\/toster\.ru\/q\/(\d+)/);
+	if (location.href.indexOf('https://qna.habr.com/q/') == -1) return;
+	let m = location.href.match(/^https:\/\/qna\.habr\.com\/q\/(\d+)/);
 	if (!m) return;
 	let qnum = m[1]-0;
 	let tags = sel('.question__tags');
@@ -1011,7 +1011,7 @@ function initNotifications() {
 		} else {
 			let lis = ul.querySelectorAll(".events-list__item a");
 			cnt = lis.length;
-			if (cnt && lis[cnt-1].href == "https://toster.ru/my/tracker") cnt--;
+			if (cnt && lis[cnt-1].href == "https://qna.habr.com/my/tracker") cnt--;
 		}
 		aside_html = ul.innerHTML.replace(' style="overflow-wrap: break-word;"','');
 		aside_hash = aside_html.fastHashCode();
@@ -1062,13 +1062,13 @@ function AsideRightFilters() {
 		if(OPTIONS.is_options_button){
 			add().a('a','Настройки',{href:ext_url+('options.html'),target:'_blank'});
 		}
-		if(OPTIONS.show_rules) add().a('a','Правила',{href:'https://toster.ru/help/rules',target:'_blank'});
+		if(OPTIONS.show_rules) add().a('a','Правила',{href:'https://qna.habr.com/help/rules',target:'_blank'});
 		if (owner && OPTIONS.is_search) {
 			let search = add();
 			search.a('span','Поиск по моим вопросам/ответам:').a('br');
 			search.a('input').addEventListener('keydown',e=>{
 				if(e.key !== 'Enter' || !e.target.value) return;
-				let w=window.open('https://www.google.com/search?q='+owner+'+'+encodeURIComponent(e.target.value).replace(' ','+')+' site:toster.ru/q/');
+				let w=window.open('https://www.google.com/search?q='+owner+'+'+encodeURIComponent(e.target.value).replace(' ','+')+' site:qna.habr.com/q/');
 			});
 		}
 		if(OPTIONS.check_online){
@@ -1435,7 +1435,7 @@ function addCanvasToComments() {
 			ctx.strokeStyle = 'rgb(0, 0, 0)';
 			ctx.lineWidth = 2;
 			if (links) links.forEach(a=>{
-				if (!a.href || a.href.indexOf('//toster.ru/user/') === -1) return; //4 - nick, 5 - empty
+				if (!a.href || a.href.indexOf('//qna.habr.com/user/') === -1) return; //4 - nick, 5 - empty
 				let nickname_arr = a.href.split('/');
 				if (nickname_arr.length > 6 || nickname_arr.length == 6 && nickname_arr[5]) return; //левые ссылки, ведут не в корень профиля
 				let nickname = nickname_arr[4];
@@ -1651,7 +1651,7 @@ function getUL(obj,el,cls,names) {
 	return obj;
 }
 function parseDOM_question(Q) {
-	//https://toster.ru/q/630303
+	//https://qna.habr.com/q/630303
 	let rest,n;
 	if(!(DOM.show = did('question_show'))) return log('No content area!');
 	if(!getDOM(DOM,DOM.show,['question question_full', 'question__additionals'])) return;
@@ -1687,9 +1687,9 @@ function parseDOM_mainmenu() {
 function parseDOM_getNickname(){
 	let user_side = sel('.user-panel__side');
 	if(user_side){
-		let a = user_side.children[0]
-		if(a && a.tagName=='A' && a.className=='user-panel__user-name'){
-			let m = a.href.match(/https?:\/\/toster\.ru\/user\/([^\/?"]*)/);
+		let a = user_side.querySelector('.user-panel__user-name');
+		if(a && a.tagName=='A'){
+			let m = a.href.match(/https?:\/\/qna\.habr\.com\/user\/([^\/?"]*)/);
 			if(m) owner = m[1];
 		}
 	}
@@ -1701,7 +1701,7 @@ function parseDOM() {
 	DOM.page=sel('div.page');
 	sandbox(parseDOM_getNickname);
 	sandbox(parseDOM_mainmenu);
-	let m = location.href.match(/^https?:\/\/toster\.ru\/(.*)$/);
+	let m = location.href.match(/^https?:\/\/qna\.habr\.com\/(.*)$/);
 	if (!m) return log('Wrong URL:',location.href);
 	URL = m[1];
 	if(m = URL.match(/^q\/(\d\d+)/)){
@@ -1722,8 +1722,8 @@ function ParseUserList() {
 	cards.forEach(e=>{
 		let a = e.querySelector('h2.card__head-title > a');
 		if (!a) return;
-		if (a.href.indexOf("https://toster.ru/user/") !== 0) return;
-		let nick = a.href.substr(23).trim();
+		if (a.href.indexOf("https://qna.habr.com/user/") !== 0) return;
+		let nick = a.href.substr(26).trim();
 		if(nick=='') return;
 		nicknames.push(nick);
 		users[nick] = e;

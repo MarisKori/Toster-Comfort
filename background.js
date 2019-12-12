@@ -134,7 +134,7 @@ function updateUser(nickname,timeout) {
 		user.solutions_pending = true;
 		saveDB();
 		let old_perc_sol_marks = localStorage.old_perc_sol_marks === '1';
-		getURL('https://toster.ru/user/'+nickname+'/questions',(text)=>{ //log('User:',nickname);
+		getURL('https://qna.habr.com/user/'+nickname+'/questions',(text)=>{ //log('User:',nickname);
 			delete user.solutions_pending;
 			//solutions
 			//let r = /\s*(\d+)\s{8}<\/div>/g; //todo: very very bad, need better algorytm!
@@ -239,7 +239,7 @@ function updateUser(nickname,timeout) {
 
 function parseTags(txt) {
 	let tags = {};
-	let r = /<a href="https?:\/\/toster\.ru\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
+	let r = /<a href="https?:\/\/qna\.habr\.com\/tag\/([^">]*)">\s*([\S ]+?)\s*<\/a>/g
 	let a = r.exec(txt);
 	while (a) {
 		tags[clearString(a[1])] = clearString(a[2]);
@@ -261,7 +261,7 @@ function analyzeQuestion(question_id, now, is_fresh) { //logg('Analize!')
 	}
 	db.question[question_id] = q;
 	saveDB();
-	getURL('https://toster.ru/q/' + question_id + add_e, function(text) {
+	getURL('https://qna.habr.com/q/' + question_id + add_e, function(text) {
 		//get title
 		const index_title_str = '<h1 class="question__title" itemprop="name ">';
 		let index_title = text.indexOf(index_title_str);
@@ -499,7 +499,7 @@ function updateUserTagsCache(nick) {
 	if (cache.is_pending) return;
 	cache.is_pending = true;
 	let data = cache.data;
-	getURL('https://toster.ru/user/'+nick+'/tags', html=>{ //console.log('onSuccess');
+	getURL('https://qna.habr.com/user/'+nick+'/tags', html=>{ //console.log('onSuccess');
 		cache.is_pending = false;
 		cache.ut = (new Date()).getTime();
 		let html_cards = html.match(/<article class="card"[\s\S]*?<\/article>/g);
@@ -511,7 +511,7 @@ function updateUserTagsCache(nick) {
 		//Фасуем теги
 		let tags = [];
 		html_cards.forEach(h=>{
-			//<a class="card__head-image card__head-image_tag" href="https://toster.ru/tag/тестирование-по">
+			//<a class="card__head-image card__head-image_tag" href="https://qna.habr.com/tag/тестирование-по">
       //        <img class="tag__image tag__image_bg" src="https://habrastorage.org/r/w120/files/4d0/738/fc1/4d0738fc1d9b4e0b8818bea5ac8a4923.png" alt="тестирование-по">
       //</a>
 			let m = h.match(/<meta itemprop="name" content="([^"]*)">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) answers">[\s\S]*?<meta itemprop="interactionCount" content="(\d+) contribute">/);
@@ -1017,7 +1017,7 @@ function getFreshTime(time_str) {
 let cache_my_feed, cache_my_feed_tm=0;
 function updateNitificationsMyFeed(now) {
 	let xhr = new XMLHttpRequest();
-	const url = 'https://toster.ru/my/feed';
+	const url = 'https://qna.habr.com/my/feed';
 	xhr.open('GET', url, true);
 	xhr.send(); rps++;
 	xhr.onload = function() {
@@ -1061,7 +1061,7 @@ function updateNitificationsMyFeed(now) {
 			}
 			notify_feed_arr[q_id]=1;
 		}
-		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
+		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/qna\.habr\.com\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
 		let m;
 		let arr=[];
 		while (m = r.exec(xhr.response)) {
@@ -1095,7 +1095,7 @@ let cache_page_1, cache_page_1_tm=0; //страница и время загру
 function updateNitificationsFilterAll(now) {
 	//if (db_conditions_notify_cnt == 0) return; //Нет правил, нет смысла проверять.
 	let xhr = new XMLHttpRequest();
-	const url = 'https://toster.ru/questions';
+	const url = 'https://qna.habr.com/questions';
 	xhr.open('GET', url, true);
 	xhr.send(); rps++;
 	xhr.onload = function() {
@@ -1143,7 +1143,7 @@ function updateNitificationsFilterAll(now) {
 				return;
 			}
 		}
-		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
+		let r = /<h2 class="question__title">\s*<a class="question__title-link question__title-link_list" href="https:\/\/qna\.habr\.com\/q\/(\d+)">\s*(.*?)<\/a>[\S\s]*?<time class="question__date[^>]*>\s*(.+)<\/time>[\S\s]*?<span class="question__views-count">\s*(\d+)[\S\s]*?<div class="mini-counter__count[\S\s]*?>\s*(\d+)   \s*<\/div>/g;
 		let m;
 		//let arr=[];
 		let online=localStorage.check_online && localStorage.is_widget;
@@ -1229,8 +1229,8 @@ function updateNotificationOptions() {
 			if (now - bad_error_tm_last < bad_error_pause*1000) return log('skip');
 			//if (now - getNotifications_last_time < 60000) return; //Страница не отвечает (никакая).
 			let xhr = new XMLHttpRequest();
-			let url = 'https://toster.ru/my/tracker';
-			//let url = 'https://toster.ru/tracker/feed?page='+start_page;
+			let url = 'https://qna.habr.com/my/tracker';
+			//let url = 'https://qna.habr.com/tracker/feed?page='+start_page;
 			//console.log('----------Страница:',start_page);
 			//start_page++;
 			//if (start_page>75) start_page=75;
@@ -1266,7 +1266,7 @@ function updateNotificationOptions() {
 				//Текущий пользователь
 				let current_user;
 				//if (localStorage.always_notify_my_questions == 1) {
-				m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/toster\.ru\/user\/([^"]+)">/);
+				m = xhr.response.match(/<a class="user-panel__user-name" href="https:\/\/qna\.habr\.com\/user\/([^"]+)">/);
 				if (m) {
 					current_user=clearString(m[1]);
 					save_current_user = current_user;
@@ -1286,7 +1286,7 @@ function updateNotificationOptions() {
 							//console.log('Загружен новый хеш:',hash,aside_notifications);
 						}
 						//console.log("aside",aside_notifications);
-						let m = aside_notifications.match(/<a class="link_light-blue" href="https:\/\/toster\.ru\/my\/tracker">\s*.*\s*<span>(\d+)<\/span>/m);
+						let m = aside_notifications.match(/<a class="link_light-blue" href="https:\/\/qna\.habr\.com\/my\/tracker">\s*.*\s*<span>(\d+)<\/span>/m);
 						if (m) {
 							cnt = m[1]-0;
 						} else {
@@ -1305,7 +1305,7 @@ function updateNotificationOptions() {
 				let html = xhr.response.substring(start,end);
 				let notify_all = localStorage.notify_all==1;
 				//Парсим на отдельные секции вопросов
-				let r = /<a class="question__title-link" href="https:\/\/toster\.ru\/q\/(\d+)">\s*(.*?)<\/a>[\s\S]*?<ul class="events-list">([\s\S]*?)<\/ul>/g;
+				let r = /<a class="question__title-link" href="https:\/\/qna\.habr\.com\/q\/(\d+)">\s*(.*?)<\/a>[\s\S]*?<ul class="events-list">([\s\S]*?)<\/ul>/g;
 				tracker_q_ids = {};
 				while (m = r.exec(html)) { //Блок отдельного вопроса
 					let Q_id = m[1]-0;
@@ -1346,14 +1346,14 @@ function updateNotificationOptions() {
 							console.log('Слишком длинное уведомление',a);
 							continue; //possible error
 						}
-						let nickname = (m = message.match(/<a\s\S*?\s*?href="https:\/\/toster\.ru\/user\/(.*?)"/)) && m[1];
+						let nickname = (m = message.match(/<a\s\S*?\s*?href="https:\/\/qna\.habr\.com\/user\/(.*?)"/)) && m[1];
 						a.nickname = nickname;
 						if (message.indexOf('Модератор ') > -1) { //moderator
 							if (!must_notify && !(localStorage.notify_moderator==1)) continue;
 							if (message.indexOf('Модератор принял вашу правку вопроса') > -1) {
 								a.what = 'Модератор принял правку';
 							} else if (message.indexOf('Модератор удалил') > -1) {
-								//Модератор удалил ответ от&nbsp;<a href="https://toster.ru/user/unsstrennen">unsstrennen</a>, на который вы жаловались с причиной: «Это какая-то реплика, а не ответ»
+								//Модератор удалил ответ от&nbsp;<a href="https://qna.habr.com/user/unsstrennen">unsstrennen</a>, на который вы жаловались с причиной: «Это какая-то реплика, а не ответ»
 								a.what = 'Модератор удалил '+
 									(message.indexOf('ответ') > -1? 'ответ' :
 										(message.indexOf('вопрос') > -1? 'вопрос' :
@@ -1382,9 +1382,9 @@ function updateNotificationOptions() {
 							//a.title = nickname + ' подписался на ваш вопрос.';
 						} else {
 							let spaces,q_id,e2,anchor,what,url;
-							m = message.match(/(\s*)<a href\s?=\s?"https:\/\/toster\.ru\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
-							if (!m && (m = message.match(/(\s*)<a href\s?=\s?"https:\/\/toster\.ru\/questionversion\?question_id=(\d+)&e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/))) {
-								url = message.match(/<a href\s?=\s?"(https:\/\/toster\.ru\/questionversion[^"]*)"/);
+							m = message.match(/(\s*)<a href\s?=\s?"https:\/\/qna\.habr\.com\/\q\/(\d+)\?e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/);
+							if (!m && (m = message.match(/(\s*)<a href\s?=\s?"https:\/\/qna\.habr\.com\/questionversion\?question_id=(\d+)&e=(\d+)[^#]*#?([^>]*)">([^<]+)<\/a>/))) {
+								url = message.match(/<a href\s?=\s?"(https:\/\/qna\.habr\.com\/questionversion[^"]*)"/);
 								if (url) a.url = url[1];
 							}
 							if (m) {
@@ -1409,7 +1409,7 @@ function updateNotificationOptions() {
 								continue;
 							}
 							if (message.indexOf('написал') > -1) {
-								//написал \n <a href="https://toster.ru/q/621216?e=7482397#comment_1877510">комментарий</a> \n к&nbsp;ответу на&nbsp;вопрос
+								//написал \n <a href="https://qna.habr.com/q/621216?e=7482397#comment_1877510">комментарий</a> \n к&nbsp;ответу на&nbsp;вопрос
 								if (!must_notify && !(localStorage.notify_answer_comment==1)) continue;
 								if (what == 'комментарий') what = 'Комментарий';
 								else if (what=='ответ') what = 'Ответ';
@@ -1470,7 +1470,7 @@ function updateNotificationOptions() {
 						}
 						notif.title = q.t;
 						notif.w = 'Вопрос переименован';
-						notif.url = 'https://toster.ru/q/'+Q_id;
+						notif.url = 'https://qna.habr.com/q/'+Q_id;
 						notif.tm = now; //not used
 					}
 				}
@@ -1581,7 +1581,7 @@ function updateVersion() { //Вызываем только если пользо
 function test_like()
 {
 	let xhr = new XMLHttpRequest();
-	let url = 'https://toster.ru/answer/like?answer_id=56';
+	let url = 'https://qna.habr.com/answer/like?answer_id=56';
 	xhr.open('POST', url, true);
 	xhr.send(); rps++;
 	xhr.onload = function() {
@@ -1591,18 +1591,18 @@ function test_like()
 function test_unlike()
 {
 	let xhr = new XMLHttpRequest();
-	let url = 'https://toster.ru/answer/cancel_like?answer_id=1384993';
+	let url = 'https://qna.habr.com/answer/cancel_like?answer_id=1384993';
 	xhr.open('POST', url, true);
 	xhr.send(''); rps++;
 	xhr.onload = function() {
 		console.log(xhr.status,xhr.responseText);
 	}
 }
-//https://toster.ru/q/567899
+//https://qna.habr.com/q/567899
 function test_post()
 {
 	let xhr = new XMLHttpRequest();
-	let url = 'https://toster.ru/answer/likers_list?answer_id=56';
+	let url = 'https://qna.habr.com/answer/likers_list?answer_id=56';
 	xhr.open('POST', url, true);
 	xhr.send(''); rps++;
 	xhr.onload = function() {
