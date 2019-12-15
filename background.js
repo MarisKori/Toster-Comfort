@@ -796,19 +796,21 @@ const TOSTER_OPTIONS = [
 	'mark_anwers_by_color','mark_answers_count',
 	'add_comment_lines','change_user_background','show_respect',
 	'show_user_reg_date','short_tags','show_rules','show_user_reg_toster','show_user_reg_min',
+	'hide_tm_panel','move_logo_to_menu','resurrect_toster_logo','resurrect_toster_logo_height',
 ];
 
 const HABR_OPTIONS = [
 	'move_posttime_down','move_stats_up', 'hide_comment_form_by_default',
 ];
 
-if (localStorage.show_ban_info === undefined) { //last added option
+if (localStorage.move_logo_to_menu === undefined) { //last added option --show_ban_info
 	const options_to_init = [
 		//Toster options
 		'show_habr','show_nickname','fixed_a_bug','always_notify_my_questions','show_blue_circle','notify_mention','notify_expert',
 		'is_widget','is_options_button','is_search','top24_show','read_q','show_psycho','show_status_achiever','show_cnt_questions',
 		'show_cnt_answers','show_perc_solutions','show_perc_sol_marks','show_ban_info','psycho_summary',
 		'show_rules',
+		'hide_tm_panel','move_logo_to_menu',
 		//Habr options
 		//move_posttime_down, move_stats_up, hide_comment_form_by_default, habr_fix_lines
 	];

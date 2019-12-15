@@ -173,7 +173,7 @@ const SHORT_TAGS_TABLE = {
 	['программирование']: 'Программ.',
 	['компьютерные сети']: 'Сети',
 	['google chrome']: 'Chrome',
-	['операционные системы']: 'ОС',
+	['операционные системы']: 'OS',
 	['системное администрирование']: 'Сис. админство',
 	['разработка игр']: 'Геймдев',
 	['мобильная разработка']: 'Моб. разработка',
@@ -204,6 +204,12 @@ const SHORT_TAGS_TABLE = {
 	['сетевое оборудование']: 'Сет. оборудование',
 	['мобильная связь']: 'Моб. связь',
 	['машинный перевод с одного языка на другой']: 'Машинный перевод',
+	['уплата налогов с it-бизнеса']: 'Налоги',
+	['юриспруденция в it']: 'Право',
+	['visual studio code']: 'VS Code',
+	['системы контроля версий']: 'VCS',
+	['базы данных']: 'СУБД',
+	['твердотельные накопители']: 'SSD',
 }
 function makeShortTags(tag) {
 	return SHORT_TAGS_TABLE[tag.trim().toLowerCase()] || tag;
@@ -1027,7 +1033,7 @@ function AsideRightFilters() {
 	if (!(OPTIONS.aside_right_hide==1 || OPTIONS.aside_right_noads==1 || OPTIONS.is_widget==1 || OPTIONS.top24_show!=1)) return;
 	let aside = d.getElementsByClassName('column_sidebar')[0];
 	if (!aside) return log('Правая колонка не найдена');
-	if (OPTIONS.aside_right_noads==1) {
+	if (OPTIONS.aside_right_noads==1) { //скрыть всю рекламу
 		let promo = sel('.promo-block');
 		if (promo) promo.style.display = 'none';
 		//for sure
@@ -1040,6 +1046,9 @@ function AsideRightFilters() {
 		//empty block
 		let empty = sel('.empty-block');
 		if(empty)empty.style.display='none';
+		//мегапосты
+		let mega = sel('.bmenu_inner');
+		if (mega) mega.style.display='none';
 	}
 	for (let i=0;i<aside.children.length;i++) {
 		let dl = aside.children[i];
@@ -1081,6 +1090,49 @@ function AsideRightFilters() {
 		aside.insertBefore(widget,aside.children[0]);
 	} else {
 		OPTIONS.check_online=0;
+	}
+}
+
+//Скрыть верхнюю строку и выцепить оттуда лого
+function HideTMPanel() {
+	let panel = sel('#TMpanel');
+	if (panel) {
+		if (OPTIONS.hide_tm_panel) panel.style.display='none';
+		else panel.style.display='block';
+	}
+	let logo = sel('.logo-wrapper');
+	if (OPTIONS.move_logo_to_menu) {
+		let left = sel('.layout__navbar');
+		if (logo && left) {
+			let padding = OPTIONS.resurrect_toster_logo_height ? "19" : "9";
+			let height = OPTIONS.resurrect_toster_logo_height ? "65" : "48";
+			let div = c('div',0,{style:'padding:'
+				+padding+'px;background-color:#424b5f;min-width:0px;text-align:center;height:'
+				+height+'px;display:block'});
+			left.insertBefore(div,left.children[0]);
+			div.a(logo);
+			logo.style.textAlign = 'center';
+			//restore styles
+			div.id = 'TMpanel';
+			//let control = logo.querySelector('#dropdown-control');
+			//if (control) {
+			//}
+			let dropdown = logo.querySelector('#dropdown');
+			if (dropdown) {
+				dropdown.style.maxWidth = '350px';
+				dropdown.style.width = '350px';
+				dropdown.style.textAlign = 'left';
+			}
+		}
+	}
+	if (OPTIONS.resurrect_toster_logo) { //ext_url+'images/toster_logo_white.png'
+		let a = logo.querySelector('a.logo');
+		if (!a) a = logo.querySelector('a');
+		if (!a) log('Logo image not found!');
+		else {
+			while (a.firstChild) a.removeChild(a.firstChild);
+			a.a('img',0,{src:ext_url+'images/toster_logo_white.png'});
+		}
 	}
 }
 
@@ -1346,6 +1398,8 @@ function parse_opt() {
 		sandbox(DateTimeReplace);
 		//Aside filters
 		sandbox(AsideRightFilters);
+		//TMPanel
+		sandbox(HideTMPanel);
 		//Aside menu
 		sandbox(AsideMenu);
 		sandbox(FilterCurator);
@@ -1818,6 +1872,7 @@ d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	//log('DOM:',DOM);
 	parse_opt();
 	addCustomCSS(css_global);
+	window.scroll(0,48); //hide panel after applying css
 	//if (URL.indexOf('user/')===0 && !URL.match(/^user\/[^\/]+/iquestions/)
 	if (URL.indexOf('q/') === 0 || URL.indexOf('answer') === 0) {
 		sandbox(parse_q);
@@ -1887,6 +1942,10 @@ const css_global = `
 	position: absolute;
 	z-index: 999998;
 	pointer-events: none;
+}
+
+#TMpanel {
+	display: none;
 }
 
 `;

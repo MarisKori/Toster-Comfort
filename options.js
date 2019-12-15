@@ -140,6 +140,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	init_checkbox("use_ctrl_enter");
 	init_checkbox("hide_offered_services",{antimaster:'aside_right_noads'});
+	init_checkbox("hide_tm_panel");
+	init_checkbox("move_logo_to_menu");
+	init_checkbox("resurrect_toster_logo");
+	init_checkbox("resurrect_toster_logo_height");
 	init_checkbox("aside_right_noads");
 	init_checkbox("aside_right_hide");
 	init_checkbox("top24_show",{antimaster:'aside_right_hide'});
