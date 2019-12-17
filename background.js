@@ -194,6 +194,7 @@ function updateUser(nickname,timeout) {
 		getURL('https://habr.com/users/'+nickname+'/',(text)=>{
 			delete user.karma_pending;
 			let a = text.match(/<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Карма<\/div>/);
+			if (!a) a = text.match(/<div class="stacked-counter__value[^>]*>(.*)<\/div>\s*<div class="stacked-counter__label">Karma<\/div>/);
 			if (a) {
 				user.karma = a[1].replace(',','.').replace('–','-');
 				let karma = parseFloat(user.karma);
@@ -209,14 +210,17 @@ function updateUser(nickname,timeout) {
 				//console.log('Karma not found, user:',nickname);
 			}
 			a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Публикации: (\d+)">/);
+			if (!a) a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Posts: (\d+)">/);
 			if (a) {
 				user.stat_pub = parseInt(a[1]);
 			}
 			a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Комментарии: (\d+)">/);
+			if (!a) a = text.match(/<span class="tabs-menu__item-counter tabs-menu__item-counter_total" title="Comments: (\d+)">/);
 			if (a) {
 				user.stat_comment = parseInt(a[1]);
 			}
 			a = text.match(/Зарегистрирован<\/span>[\s\n]*<span class="defination-list__value">(.*?)<\/span>/);
+			if (!a) a = text.match(/Registered<\/span>[\s\n]*<span class="defination-list__value">(.*?)<\/span>/);
 			if (a) {
 				//console.log('Time:',a[1]);
 				let date_str = a[1].replace(' г.','');

@@ -1119,9 +1119,10 @@ function HideTMPanel() {
 			//}
 			let dropdown = logo.querySelector('#dropdown');
 			if (dropdown) {
-				dropdown.style.maxWidth = '350px';
-				dropdown.style.width = '350px';
+				//dropdown.style.maxWidth = '350px';
+				//dropdown.style.width = '350px';
 				dropdown.style.textAlign = 'left';
+				dropdown.style.left = '0px';
 			}
 		}
 	}
@@ -1132,6 +1133,36 @@ function HideTMPanel() {
 		else {
 			while (a.firstChild) a.removeChild(a.firstChild);
 			a.a('img',0,{src:ext_url+'images/toster_logo_white.png'});
+		}
+		//change all the text
+		if (URL && URL.indexOf('help/') === 0) {
+			const REPLACE = [
+				['заходите на','Тостер'],
+				['деология','Тостера'],
+				['иссия','Тостера'],
+				['ользователи','Тостера'],
+				['на','Тостере'],
+				['На','Тостере'],
+			];
+			let pp = [...(d.querySelectorAll('p') || [])].concat(...(d.querySelectorAll('h4')||[]));
+			if(pp)pp.forEach(p=>{
+				let text = p.innerText;
+				let found = text.indexOf("Хабр Q&A") !== -1;
+				if (!found) return;
+				if (REPLACE.find(e=>{
+					if(text.indexOf(e[0])===-1)return;
+					let pattern = e[0] + ' «Хабр Q&A»';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' «'+e[1]+'»');
+					pattern = e[0] + ' «Хабр Q&A»';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' «'+e[1]+'»');
+					pattern = e[0] + ' Хабр Q&A';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' '+e[1]+'');
+					pattern = e[0] + ' Хабр Q&A';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' '+e[1]+'');
+				}) === undefined && text.indexOf('Хабр Q&A') !== -1) {
+					p.innerText = text.replace('Хабр Q&A', 'Тостер');
+				}
+			});
 		}
 	}
 }
