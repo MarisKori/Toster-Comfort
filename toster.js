@@ -49,7 +49,7 @@ function removeA(arr,id) {
 			arr.splice(i, 1);
 		}
 	}
-    return arr;
+	return arr;
 }
 
 let NOW_DATE;
@@ -105,23 +105,23 @@ function user_html(user,no_name) {
 	if (user.solutions !== undefined) {
 		let cnt_q_color = user.cnt_q < 4 ? 'red' : '#2d72d9';
 		let honor = user.con || 0;
-		html += //https://toster.ru/user/dollar/tags
+		html += //https://qna.habr.com/user/dollar/tags
 			(OPTIONS.show_honor && !OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
-				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></a>':'')
-			+(!OPTIONS.show_cnt_questions?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname
-				+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
-				+'</font></a>')
-			+(!OPTIONS.show_cnt_answers?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a
-				+'" class="norma">'+user.cnt_a+'</a>')
+				+honor+'" href="https://qna.habr.com/user/'+user.nickname+'/tags"><b>'+honor+'</b></a>':'')
+			+(!OPTIONS.show_cnt_questions?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname
+			+'/questions" title="Вопросов: '+user.cnt_q+'" class="norma"><font color='+cnt_q_color+'>'+user.cnt_q
+			+'</font></a>')
+			+(!OPTIONS.show_cnt_answers?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname+'/answers" title="Ответов: '+user.cnt_a
+			+'" class="norma">'+user.cnt_a+'</a>')
 			+(OPTIONS.show_perc_solutions && !OPTIONS.sol_honor_replace?' &nbsp;<font color=#65c178 style="font-size:13px;" title="Решений: '
-				+user.cnt_s+'%">'+user.cnt_s+'%</font>':'')
+			+user.cnt_s+'%">'+user.cnt_s+'%</font>':'')
 			+(OPTIONS.show_honor && OPTIONS.sol_honor_replace?' &nbsp;<a style="color:#a98ae7;font-size:13px;" title="Вклад: '
-				+honor+'" href="https://toster.ru/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
-			+(!OPTIONS.show_perc_sol_marks?'':user.solutions==-1?'':' &nbsp;<a href="https://toster.ru/user/'+user.nickname+'/questions" title="Отметил решениями: '
-				+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>')
-			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://toster.ru/user/'+user.nickname
-				+'" title="Лайков на ответ: '+(user.respect).toFixed(1)
-				+'" class="norma" style="color:#ff9040">'+(user.respect).toFixed(1)+'</a>':'');
+			+honor+'" href="https://qna.habr.com/user/'+user.nickname+'/tags"><b>'+honor+'</b></font>':'')
+			+(!OPTIONS.show_perc_sol_marks?'':user.solutions==-1?'':' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname+'/questions" title="Отметил решениями: '
+			+user.solutions+'%" style="font-size:13px"><b><font color=#000>'+user.solutions+'%</font></b></a>')
+			+(OPTIONS.show_respect && user.respect?' &nbsp;<a href="https://qna.habr.com/user/'+user.nickname
+			+'" title="Лайков на ответ: '+(user.respect).toFixed(1)
+			+'" class="norma" style="color:#ff9040">'+(user.respect).toFixed(1)+'</a>':'');
 	} else user_html_result = false;
 	//karma
 	if (user.karma !== undefined) {
@@ -154,9 +154,9 @@ function user_html(user,no_name) {
 				+user.nickname+'/" target=_blank style="font-size:13px" title="Зарегистрирован на Хабре"><span class="small" style="'
 				+ (days < 10 ? 'color:red;font-weight:bold' :
 					days < 30 ? 'color:red;font-weight:normal' :
-					days < 90 ? 'color:#ff9040;font-weight:normal' :
-					days >= 365*3 ? 'color:#090;font-weight:bold' :
-					days >= 365 ? 'color:#090;font-weight:normal' : 'color:#555;font-weight:normal')
+						days < 90 ? 'color:#ff9040;font-weight:normal' :
+							days >= 365*3 ? 'color:#090;font-weight:bold' :
+								days >= 365 ? 'color:#090;font-weight:normal' : 'color:#555;font-weight:normal')
 				+'">' + str
 				+'</span></a>';
 		}
@@ -166,13 +166,14 @@ function user_html(user,no_name) {
 	return html;
 }
 
+//Сокращаем названия тегов
 const SHORT_TAGS_TABLE = {
 	['информационная безопасность']: 'ИБ',
 	['регулярные выражения'] : 'Рег. выражения',
 	['программирование']: 'Программ.',
-	['Компьютерные сети']: 'Сети',
+	['компьютерные сети']: 'Сети',
 	['google chrome']: 'Chrome',
-	['операционные системы']: 'ОС',
+	['операционные системы']: 'OS',
 	['системное администрирование']: 'Сис. админство',
 	['разработка игр']: 'Геймдев',
 	['мобильная разработка']: 'Моб. разработка',
@@ -198,6 +199,17 @@ const SHORT_TAGS_TABLE = {
 	['мобильные устройства']: 'Моб. устройства',
 	['сетевое оборудование']: 'Сет. оборудование',
 	['языки программирования']: 'ЯП',
+	['unity game engine']: 'Unity',
+	['интернет-реклама']: 'Реклама',
+	['сетевое оборудование']: 'Сет. оборудование',
+	['мобильная связь']: 'Моб. связь',
+	['машинный перевод с одного языка на другой']: 'Машинный перевод',
+	['уплата налогов с it-бизнеса']: 'Налоги',
+	['юриспруденция в it']: 'Право',
+	['visual studio code']: 'VS Code',
+	['системы контроля версий']: 'VCS',
+	['базы данных']: 'СУБД',
+	['твердотельные накопители']: 'SSD',
 }
 function makeShortTags(tag) {
 	return SHORT_TAGS_TABLE[tag.trim().toLowerCase()] || tag;
@@ -216,13 +228,14 @@ function makeTags(tags) {
 		let li = c("LI");
 		li.className = 'tags-list__item';
 		let a = c("A",makeShortTags(tags[id]));
-		a.href = 'https://toster.ru/tag/' + id;
+		a.href = 'https://qna.habr.com/tag/' + id;
 		ul.a(li.a(a));
 	}
 	return ul;
 }
 
 //Скрыть элемент, либо просто затемнить (на белом фоне)
+/* old function that doesn't work anymore
 function hideElementClever(el) {
 	if (!OPTIONS.make_dark) {
 		el.style.display = 'none';
@@ -236,6 +249,19 @@ function hideElementClever(el) {
 	div.style.top = '0';
 	div.style.pointerEvents = 'none';
 	el.a(div);
+} */
+
+function hideElementClever(target) {
+	const relativeParent = target.offsetParent;
+	const hider = document.createElement('div');
+	hider.style.position = 'absolute';
+	hider.style.width = target.offsetWidth + 'px';
+	hider.style.height = target.offsetHeight + 'px';
+	hider.style.background = 'rgba(255,255,255,.7)';
+	hider.style.top = target.offsetTop + 'px';
+	hider.style.left = target.offsetLeft +'px';
+	hider.style.pointerEvents = 'none';
+	relativeParent.appendChild(hider);
 }
 
 function update_questions(on_success, on_fail) {
@@ -260,6 +286,9 @@ function update_questions(on_success, on_fail) {
 					if (found) {
 						q.tc_done = true;
 						let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+						parent.style.paddingLeft = "30px";
+						parent.style.paddingRight = "30px";
+						parent.style.margin = "0 -30px";
 						hideElementClever(parent)
 						//return;
 					}
@@ -268,6 +297,15 @@ function update_questions(on_success, on_fail) {
 				if (!rec) {
 					if (!q.tc_done) success = false;
 					return;
+				}
+				//Change color
+				if (rec.color) {
+					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
+					parent.style.backgroundColor = rec.color;
+					//Patch from d0kur0. Фиксит отступы текста от края подсветки
+					parent.style.paddingLeft = "30px";
+					parent.style.paddingRight = "30px";
+					parent.style.margin = "0 -30px";
 				}
 				if (rec.hide && !q.tc_done) {
 					q.tc_done = true;
@@ -298,14 +336,6 @@ function update_questions(on_success, on_fail) {
 					q.tc_done = true;
 				}
 				else if (!q.tc_done) success = false;
-				//Change color
-				if (rec.color) {
-					let parent = q.e.parentNode.parentNode.parentNode.parentNode.parentNode;
-					parent.style.backgroundColor = rec.color;
-					parent.style.paddingLeft = "30px";
-					parent.style.paddingRight = "30px";
-					parent.style.margin = "0 -30px";
-				}
 			});
 			elem_top_24.forEach(t=>{
 				if (t.tc_done == 2) return;
@@ -578,10 +608,10 @@ function update_q(on_success, on_fail) {
 					if (is_hint && is_ach) myhint.a('br');
 					if (is_ach) {
 						myhint.a('span','Ачивер',{style:'font-weight:bold; color:#ed7503;','data-psycho':
-							user.ach == 3 ? ' Этот пользователь является НАСТОЯЩИМ ачивером и ревниво относится к оценкам своего творчества. Если вы не уделите внимания и не отблагодарите его (кнопкой), то он может психануть и удалить свой ответ!':
-							user.ach == 2 ? ' У этого пользователя КРАЙНЕ высокий процент решений. Он наверняка удалит свой ответ без отметки о решении.':
-							user.ach == 1 ? ' Судя по ПОДОЗРИТЕЛЬНО высокому проценту решений, этот пользователь может удалить свой ответ, если он никому не понравится и автор вопроса не отблагодарит (кнопкой).':
-							' Ошибка: '+user.ach
+								user.ach == 3 ? ' Этот пользователь является НАСТОЯЩИМ ачивером и ревниво относится к оценкам своего творчества. Если вы не уделите внимания и не отблагодарите его (кнопкой), то он может психануть и удалить свой ответ!':
+									user.ach == 2 ? ' У этого пользователя КРАЙНЕ высокий процент решений. Он наверняка удалит свой ответ без отметки о решении.':
+										user.ach == 1 ? ' Судя по ПОДОЗРИТЕЛЬНО высокому проценту решений, этот пользователь может удалить свой ответ, если он никому не понравится и автор вопроса не отблагодарит (кнопкой).':
+											' Ошибка: '+user.ach
 						});
 					}
 				}
@@ -608,7 +638,7 @@ function parse_q() {
 			request_user[nickname] = i==0 ? 1 : true;
 			//Предполагаем, что первый в списке - автор вопроса.
 			if (i == 0) {
-				let qm = location.href.match(/toster\.ru\/q\/(\d+)/);
+				let qm = location.href.match(/qna\.habr\.com\/q\/(\d+)/);
 				let tags = sel('.tags-list');
 				let q_title = sel('.question__title');
 				let grp = sel('.buttons-group_question');
@@ -688,10 +718,10 @@ function enable_save_form_to_storage() {
 	}
 	let q = Q;
 	if(!q) {
-		let m = location.href.match(/^https?:\/\/toster\.ru\/questionversion\/new\?question_id=(\d+)/);
+		let m = location.href.match(/^https?:\/\/qna\.habr\.com\/questionversion\/new\?question_id=(\d+)/);
 		if (m) q = m[1]-0;
 		else {
-			m = location.href.match(/^https?:\/\/toster\.ru\/question\/new/);
+			m = location.href.match(/^https?:\/\/qna\.habr\.com\/question\/new/);
 			if (m) q = 'new';	else return;
 		}
 	}
@@ -786,17 +816,17 @@ let window_focus = true;
 window.addEventListener("blur",e=>window_focus=false);
 window.addEventListener("focus",e=>window_focus=true);
 
-let R_Q_SEARCH = /<a class="question__title-link question__title-link_list" href="https?:\/\/toster\.ru\/q\/(\d+)">/;
+let R_Q_SEARCH = /<a class="question__title-link question__title-link_list" href="https?:\/\/qna\.habr\.com\/q\/(\d+)">/;
 let cache_page_1, cache_page_1_tm=0, cache_page_1_q=0, cache_page_1_q_hash=0,
 	cache_my_feed, cache_my_feed_tm, cache_my_feed_q=0, cache_my_feed_hash=0;
 function getInfo(info) {
-	if (info.cache_page_1_tm) { //Кешированная страница 
+	if (info.cache_page_1_tm) { //Кешированная страница
 		cache_page_1_tm = info.cache_page_1_tm;
 		cache_page_1 = info.cache_page_1;
 		let m = cache_page_1.match(R_Q_SEARCH);
 		if (m) cache_page_1_q=m[1]-0;
 	}
-	if (info.cache_my_feed_tm) { //Кешированная страница 
+	if (info.cache_my_feed_tm) { //Кешированная страница
 		cache_my_feed_tm = info.cache_my_feed_tm;
 		cache_my_feed = info.cache_my_feed;
 		let m = cache_my_feed.match(R_Q_SEARCH);
@@ -835,7 +865,7 @@ function getInfo(info) {
 	if(info.users && OPTIONS.check_online){
 		while (div_online.firstChild) div_online.removeChild(div_online.firstChild);
 		info.users.forEach(u=>{
-			let a = div_online.a('a',0,{href:'https://toster.ru/user/'+u.nick+'/info'}).a('img',0,
+			let a = div_online.a('a',0,{href:'https://qna.habr.com/user/'+u.nick+'/info'}).a('img',0,
 				{src:u.img?'https://habrastorage.org/'+u.img:ext_url+'images/nouser.png', width:"35", height:"35"});
 		});
 		if(info.need_check)checkOnlineUsers();
@@ -873,7 +903,7 @@ function updateNotifications(is_first_time) {
 					}
 					continue;
 				}
-				if (q_id == 2) { 
+				if (q_id == 2) {
 					getInfo(item);
 					continue;
 				}
@@ -885,8 +915,8 @@ function updateNotifications(is_first_time) {
 					if (item.q_id) {
 						let url = item.url;
 						if (!url) {
-							if (item.anchor) url = "https://toster.ru/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
-							else url = "https://toster.ru/q/"+item.q_id;
+							if (item.anchor) url = "https://qna.habr.com/q/"+item.q_id+"?e="+item.e+"#"+item.anchor;
+							else url = "https://qna.habr.com/q/"+item.q_id;
 						}
 						window.location.href = url;
 					}
@@ -918,8 +948,8 @@ function updateNotifications(is_first_time) {
 
 //Добавить кнопку "Следить", чтобы получать быстрые уведомления
 function addListenButton() {
-	if (location.href.indexOf('https://toster.ru/q/') == -1) return;
-	let m = location.href.match(/^https:\/\/toster\.ru\/q\/(\d+)/);
+	if (location.href.indexOf('https://qna.habr.com/q/') == -1) return;
+	let m = location.href.match(/^https:\/\/qna\.habr\.com\/q\/(\d+)/);
 	if (!m) return;
 	let qnum = m[1]-0;
 	let tags = sel('.question__tags');
@@ -953,7 +983,7 @@ function addListenButton() {
 			});
 		});
 	});
-	
+
 }
 
 let aside_hash = 0;
@@ -987,7 +1017,7 @@ function initNotifications() {
 		} else {
 			let lis = ul.querySelectorAll(".events-list__item a");
 			cnt = lis.length;
-			if (cnt && lis[cnt-1].href == "https://toster.ru/my/tracker") cnt--;
+			if (cnt && lis[cnt-1].href == "https://qna.habr.com/my/tracker") cnt--;
 		}
 		aside_html = ul.innerHTML.replace(' style="overflow-wrap: break-word;"','');
 		aside_hash = aside_html.fastHashCode();
@@ -1003,7 +1033,7 @@ function AsideRightFilters() {
 	if (!(OPTIONS.aside_right_hide==1 || OPTIONS.aside_right_noads==1 || OPTIONS.is_widget==1 || OPTIONS.top24_show!=1)) return;
 	let aside = d.getElementsByClassName('column_sidebar')[0];
 	if (!aside) return log('Правая колонка не найдена');
-	if (OPTIONS.aside_right_noads==1) {
+	if (OPTIONS.aside_right_noads==1) { //скрыть всю рекламу
 		let promo = sel('.promo-block');
 		if (promo) promo.style.display = 'none';
 		//for sure
@@ -1016,6 +1046,9 @@ function AsideRightFilters() {
 		//empty block
 		let empty = sel('.empty-block');
 		if(empty)empty.style.display='none';
+		//мегапосты
+		let mega = sel('.bmenu_inner');
+		if (mega) mega.style.display='none';
 	}
 	for (let i=0;i<aside.children.length;i++) {
 		let dl = aside.children[i];
@@ -1027,24 +1060,69 @@ function AsideRightFilters() {
 	if (OPTIONS.is_widget) {
 		let widget = c('dl',0,'panel-heading panel-heading_inner')
 		let add=e=>widget.a('dd',0,'panel-heading__content panel-heading__content_inner');
-		widget.a('dt','Toster Comfort ','panel-heading__title panel-heading__title_underline')
-			.a('span',manifest.version_name || manifest.version, OPTIONS.is_new && 'tc_new');
-		
-		if(OPTIONS.is_debug)add().a('a','Перезагрузить расширение',{href:'#'}).addEventListener('click',e=>{
-			chrome.runtime.sendMessage({type:'Reload'}); //todo: не всегда перезагружается
-			if(!OPTIONS.enable_notifications) setTimeout(e=>window.location.reload(),1000);
-			e.preventDefault()
-		});
-		if(OPTIONS.is_options_button){
-			add().a('a','Настройки',{href:ext_url+('options.html'),target:'_blank'});
+
+		let context = widget.a('dt','Toster Comfort ','panel-heading__title panel-heading__title_underline');
+		context.a('span',manifest.version_name || manifest.version, OPTIONS.is_new && 'tc_new').style = "margin: 0 4px;";
+		context.style = `display: flex; align-items: center;`;
+
+		const styles = `
+			width: 16px;
+			height: 16px;
+			margin: 0 5px;
+			display: inline-block;
+			background-size: contain;
+			background-repeat: no-repeat;
+			background-position: center;
+		`;
+
+		if (OPTIONS.is_options_button ){
+			const settings = context.a('a','',{title: "Настройки", href:ext_url+('options.html'),target:'_blank'});
+			settings.setAttribute("style", `
+				${styles}
+				background-image: url("data:image/svg+xml,%0A%3Csvg height='64' width='64' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='32' cy='32' r='4.167'/%3E%3Cpath d='M55.192 27.87l-5.825-1.092a17.98 17.98 0 00-1.392-3.371l3.37-4.927c.312-.456.248-1.142-.143-1.532l-4.155-4.156c-.391-.391-1.076-.454-1.532-.143l-4.928 3.372a18.023 18.023 0 00-3.473-1.42l-1.086-5.794c-.103-.543-.632-.983-1.185-.983h-5.877c-.553 0-1.082.44-1.185.983l-1.097 5.851c-1.165.356-2.282.82-3.334 1.392l-4.866-3.329c-.456-.312-1.142-.248-1.532.143l-4.156 4.156c-.391.391-.454 1.076-.143 1.532l3.35 4.896a18.055 18.055 0 00-1.371 3.331L8.808 27.87c-.542.103-.982.632-.982 1.185v5.877c0 .553.44 1.082.982 1.185l5.82 1.091a18.013 18.013 0 001.401 3.399l-3.312 4.842c-.312.456-.248 1.142.143 1.532l4.155 4.156c.391.391 1.076.454 1.532.143l4.84-3.313a18.086 18.086 0 003.299 1.375l1.097 5.852c.103.542.632.982 1.185.982h5.877c.553 0 1.082-.44 1.185-.982l1.086-5.796a18.174 18.174 0 003.438-1.401l4.902 3.354c.456.312 1.142.248 1.532-.143l4.155-4.154c.391-.391.454-1.076.143-1.532l-3.335-4.874a18.016 18.016 0 001.423-3.44l5.819-1.091c.542-.103.982-.632.982-1.185v-5.877c0-.553-.441-1.082-.983-1.185zM32 42.085c-5.568 0-10.083-4.515-10.083-10.086 0-5.567 4.515-10.083 10.083-10.083 5.57 0 10.086 4.516 10.086 10.083 0 5.571-4.517 10.086-10.086 10.086z'/%3E%3C/svg%3E");
+			`);
 		}
-		if(OPTIONS.show_rules) add().a('a','Правила',{href:'https://toster.ru/help/rules',target:'_blank'});
+
+		if (OPTIONS.show_rules) {
+			const rules = context.a('a','',{title: "Правила",href:'https://qna.habr.com/help/rules',target:'_blank'});
+			rules.setAttribute("style", `
+				${styles}
+				background-image: url("data:image/svg+xml,%0A%3Csvg height='64' width='64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M55.736 13.636l-4.368-4.362a2.308 2.308 0 00-1.636-.677c-.592 0-1.184.225-1.635.676l-3.494 3.484 7.639 7.626 3.494-3.483a2.305 2.305 0 000-3.264zM21.922 35.396l7.64 7.627 21.045-21.006-7.64-7.627zM20.273 37.028l-1.631 9.252 9.271-1.626z'/%3E%3Cpath d='M41.393 50.403H12.587V21.597h20.329l5.01-5H10.82a3.243 3.243 0 00-3.234 3.234V52.17a3.243 3.243 0 003.234 3.234h32.339a3.243 3.243 0 003.234-3.234V29.049l-5 4.991v16.363z'/%3E%3C/svg%3E");
+			`);
+		}
+
+		if(!OPTIONS.is_debug) {
+			const reload = context.a('a','',{title: "Перезагрузить расширение", href:'#'});
+			reload.setAttribute("style", `
+				${styles}
+				width: 13px;
+				height: 13px;
+				background-image: url("data:image/svg+xml,%0A%3Csvg height='16' width='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 8c-.609 0-.898.43-1 .883C12.635 10.516 11.084 13 8 13a4.947 4.947 0 01-2.114-.474L6.414 12c.359-.344.586-.555.586-1 0-.523-.438-1-1-1H3c-.609 0-1 .492-1 1v3c0 .541.428 1 1 1 .484 0 .688-.273 1-.594l.408-.407A6.933 6.933 0 008 15c4.99 0 7-4.75 7-5.938C15 8.336 14.469 8 14 8zM3 7.117C3.365 5.485 4.916 3 8 3c.757 0 1.473.171 2.114.473L9.586 4C9.227 4.344 9 4.555 9 5c0 .523.438 1 1 1h3c.609 0 1-.492 1-1V2c0-.541-.428-1-1-1-.484 0-.688.273-1 .594l-.408.407A6.933 6.933 0 008 1C3.01 1 1 5.75 1 6.938 1 7.664 1.531 8 2 8c.609 0 .898-.43 1-.883z'/%3E%3C/svg%3E");
+			`);
+
+			reload.addEventListener('click',e=>{
+				chrome.runtime.sendMessage({type:'Reload'}); //todo: не всегда перезагружается
+				if(!OPTIONS.enable_notifications) setTimeout(e=>window.location.reload(),1000);
+				e.preventDefault()
+			});
+		}
+
 		if (owner && OPTIONS.is_search) {
 			let search = add();
-			search.a('span','Поиск по моим вопросам/ответам:').a('br');
-			search.a('input').addEventListener('keydown',e=>{
+
+			const searchInput = search.a('input');
+			searchInput.style = `
+				margin: 15px 0;
+				width: 100%;
+				font: inherit;
+				padding: 9px 10px;
+				border-radius: 4px;
+				border: 1px solid #ddd;
+			`;
+			searchInput.placeholder = "Поиск по моим вопросам, ответам";
+			searchInput.addEventListener('keydown',e=>{
 				if(e.key !== 'Enter' || !e.target.value) return;
-				let w=window.open('https://www.google.com/search?q='+owner+'+'+encodeURIComponent(e.target.value).replace(' ','+')+' site:toster.ru/q/');
+				let w=window.open('https://www.google.com/search?q='+owner+'+'+encodeURIComponent(e.target.value).replace(' ','+')+' site:qna.habr.com/q/');
 			});
 		}
 		if(OPTIONS.check_online){
@@ -1057,6 +1135,80 @@ function AsideRightFilters() {
 		aside.insertBefore(widget,aside.children[0]);
 	} else {
 		OPTIONS.check_online=0;
+	}
+}
+
+//Скрыть верхнюю строку и выцепить оттуда лого
+function HideTMPanel() {
+	let panel = sel('#TMpanel');
+	if (panel) {
+		if (OPTIONS.hide_tm_panel) panel.style.display='none';
+		else panel.style.display='block';
+	}
+	let logo = sel('.logo-wrapper');
+	if (OPTIONS.move_logo_to_menu) {
+		let left = sel('.layout__navbar');
+		if (logo && left) {
+			let padding = OPTIONS.resurrect_toster_logo_height ? "19" : "9";
+			let height = OPTIONS.resurrect_toster_logo_height ? "65" : "48";
+			let div = c('div',0,{style:'padding:'
+					+padding+'px;background-color:#424b5f;min-width:0px;text-align:center;height:'
+					+height+'px;display:block'});
+			left.insertBefore(div,left.children[0]);
+			div.a(logo);
+			logo.style.textAlign = 'center';
+			//restore styles
+			div.id = 'TMpanel';
+			//let control = logo.querySelector('#dropdown-control');
+			//if (control) {
+			//}
+			let dropdown = logo.querySelector('#dropdown');
+			if (dropdown) {
+				//dropdown.style.maxWidth = '350px';
+				//dropdown.style.width = '350px';
+				dropdown.style.textAlign = 'left';
+				dropdown.style.left = '0px';
+			}
+		}
+	}
+	if (OPTIONS.resurrect_toster_logo) { //ext_url+'images/toster_logo_white.png'
+		let a = logo.querySelector('a.logo');
+		if (!a) a = logo.querySelector('a');
+		if (!a) log('Logo image not found!');
+		else {
+			while (a.firstChild) a.removeChild(a.firstChild);
+			a.a('img',0,{src:ext_url+'images/toster_logo_white.png'});
+		}
+		//change all the text
+		if (URL && URL.indexOf('help/') === 0) {
+			const REPLACE = [
+				['заходите на','Тостер'],
+				['деология','Тостера'],
+				['иссия','Тостера'],
+				['ользователи','Тостера'],
+				['на','Тостере'],
+				['На','Тостере'],
+			];
+			let pp = [...(d.querySelectorAll('p') || [])].concat(...(d.querySelectorAll('h4')||[]));
+			if(pp)pp.forEach(p=>{
+				let text = p.innerText;
+				let found = text.indexOf("Хабр Q&A") !== -1;
+				if (!found) return;
+				if (REPLACE.find(e=>{
+					if(text.indexOf(e[0])===-1)return;
+					let pattern = e[0] + ' «Хабр Q&A»';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' «'+e[1]+'»');
+					pattern = e[0] + ' «Хабр Q&A»';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' «'+e[1]+'»');
+					pattern = e[0] + ' Хабр Q&A';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' '+e[1]+'');
+					pattern = e[0] + ' Хабр Q&A';
+					if (text.indexOf(pattern) !== -1) return p.innerText = text.replace(pattern, e[0] + ' '+e[1]+'');
+				}) === undefined && text.indexOf('Хабр Q&A') !== -1) {
+					p.innerText = text.replace('Хабр Q&A', 'Тостер');
+				}
+			});
+		}
 	}
 }
 
@@ -1322,6 +1474,8 @@ function parse_opt() {
 		sandbox(DateTimeReplace);
 		//Aside filters
 		sandbox(AsideRightFilters);
+		//TMPanel
+		sandbox(HideTMPanel);
 		//Aside menu
 		sandbox(AsideMenu);
 		sandbox(FilterCurator);
@@ -1411,7 +1565,7 @@ function addCanvasToComments() {
 			ctx.strokeStyle = 'rgb(0, 0, 0)';
 			ctx.lineWidth = 2;
 			if (links) links.forEach(a=>{
-				if (!a.href || a.href.indexOf('//toster.ru/user/') === -1) return; //4 - nick, 5 - empty
+				if (!a.href || a.href.indexOf('//qna.habr.com/user/') === -1) return; //4 - nick, 5 - empty
 				let nickname_arr = a.href.split('/');
 				if (nickname_arr.length > 6 || nickname_arr.length == 6 && nickname_arr[5]) return; //левые ссылки, ведут не в корень профиля
 				let nickname = nickname_arr[4];
@@ -1627,7 +1781,7 @@ function getUL(obj,el,cls,names) {
 	return obj;
 }
 function parseDOM_question(Q) {
-	//https://toster.ru/q/630303
+	//https://qna.habr.com/q/630303
 	let rest,n;
 	if(!(DOM.show = did('question_show'))) return log('No content area!');
 	if(!getDOM(DOM,DOM.show,['question question_full', 'question__additionals'])) return;
@@ -1663,9 +1817,9 @@ function parseDOM_mainmenu() {
 function parseDOM_getNickname(){
 	let user_side = sel('.user-panel__side');
 	if(user_side){
-		let a = user_side.children[0]
-		if(a && a.tagName=='A' && a.className=='user-panel__user-name'){
-			let m = a.href.match(/https?:\/\/toster\.ru\/user\/([^\/?"]*)/);
+		let a = user_side.querySelector('.user-panel__user-name');
+		if(a && a.tagName=='A'){
+			let m = a.href.match(/https?:\/\/qna\.habr\.com\/user\/([^\/?"]*)/);
 			if(m) owner = m[1];
 		}
 	}
@@ -1677,7 +1831,7 @@ function parseDOM() {
 	DOM.page=sel('div.page');
 	sandbox(parseDOM_getNickname);
 	sandbox(parseDOM_mainmenu);
-	let m = location.href.match(/^https?:\/\/toster\.ru\/(.*)$/);
+	let m = location.href.match(/^https?:\/\/qna\.habr\.com\/(.*)$/);
 	if (!m) return log('Wrong URL:',location.href);
 	URL = m[1];
 	if(m = URL.match(/^q\/(\d\d+)/)){
@@ -1698,8 +1852,8 @@ function ParseUserList() {
 	cards.forEach(e=>{
 		let a = e.querySelector('h2.card__head-title > a');
 		if (!a) return;
-		if (a.href.indexOf("https://toster.ru/user/") !== 0) return;
-		let nick = a.href.substr(23).trim();
+		if (a.href.indexOf("https://qna.habr.com/user/") !== 0) return;
+		let nick = a.href.substr(26).trim();
 		if(nick=='') return;
 		nicknames.push(nick);
 		users[nick] = e;
@@ -1794,6 +1948,7 @@ d.addEventListener('DOMContentLoaded', e=>{ // <------------ !!!!!
 	//log('DOM:',DOM);
 	parse_opt();
 	addCustomCSS(css_global);
+	window.scroll(0,48); //hide panel after applying css
 	//if (URL.indexOf('user/')===0 && !URL.match(/^user\/[^\/]+/iquestions/)
 	if (URL.indexOf('q/') === 0 || URL.indexOf('answer') === 0) {
 		sandbox(parse_q);
@@ -1819,18 +1974,18 @@ if (fixFirefox) addCustomCSS(css_right_hide);
 
 const css_global = `
 .dot_sub {
-  height: 14px;
-  width: 14px;
-  background-color: #44f;
-  border-radius: 50%;
-  display: inline-block;
+	height: 14px;
+	width: 14px;
+	background-color: #44f;
+	border-radius: 50%;
+	display: inline-block;
 }
 .dot_sb {
-  height: 14px;
-  width: 14px;
-  background-color: #aaf;
-  border-radius: 50%;
-  display: inline-block;
+	height: 14px;
+	width: 14px;
+	background-color: #aaf;
+	border-radius: 50%;
+	display: inline-block;
 }
 .norma {
 	font-size:13px;
@@ -1863,6 +2018,10 @@ const css_global = `
 	position: absolute;
 	z-index: 999998;
 	pointer-events: none;
+}
+
+#TMpanel {
+	display: none;
 }
 
 `;
@@ -1999,7 +2158,7 @@ function addTagsGraph(el,nick) {
 				let px = new Array(HEIGHT).fill(0);
 				function checkSpace(cx,cy,w,n) { //проверяет, есть ли место для текста
 					if (cy < 7 || cy > HEIGHT -1) return false;
-					if (n < max) { 
+					if (n < max) {
 						let dy = ((cc[n+1].y - cc[n].y) / DELTA) * 4;
 						if (cc[n].y + dy - 2 < cy && cc[n].y + dy + 2 > cy - 8) return false;
 					}
@@ -2102,11 +2261,11 @@ d.addEventListener("mouseover", e=>{
 	let coords = t.getBoundingClientRect();
 
 	let left = coords.left + 50; // + 150 + (t.offsetWidth - saveTooltip.offsetWidth) / 2;
-	if (left < 0) left = 0; 
+	if (left < 0) left = 0;
 
 	let top = coords.top - saveTooltip.offsetHeight - 3;
 	if (top < 0) top = coords.top + t.offsetHeight + 3;
-	
+
 	if (top + saveTooltip.offsetHeight > window.innerHeight) { // Даже внизу не влезает, надо смещать вправо, там есть место.
 		left = coords.right + 3;
 		top = 3;
